@@ -193,6 +193,8 @@ def main():
     parser = argparse.ArgumentParser(description="导出 Claude Code 会话为 Prompt 链报告")
     parser.add_argument("--label", default="", help="本次迭代的名称，如「第一版：数据模型」")
     parser.add_argument("--project", default=str(REPO_ROOT), help="项目根目录，默认取本仓库")
+    parser.add_argument("--skip-first", type=int, default=0, metavar="N",
+                        help="跳过会话开头的前 N 轮（用于剔除与本项目无关的早期内容）")
     args = parser.parse_args()
 
     if not CLAUDE_PROJECTS.is_dir():
@@ -216,7 +218,16 @@ def main():
         return 1
 
     sessions = build_turns(entries)
+
+    if args.skip_first:
+        sessions = [(sid, turns[args.skip_first:]) for sid, turns in sessions]
+        sessions = [(sid, turns) for sid, turns in sessions if turns]
+
     total_turns = sum(len(t) for _, t in sessions)
+
+    if not sessions:
+        print(f"[!] 跳过前 {args.skip_first} 轮后没有剩余内容。")
+        return 1
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
