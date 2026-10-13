@@ -1,0 +1,42 @@
+# ===== 密钥与本地配置（最重要，绝对不能提交）=====
+.env
+.env.local
+*.key
+secrets.json
+
+# Claude Code 本地配置里含有 API Token
+.claude/
+.claude/settings.local.json
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ===== 前端 =====
+node_modules/
+dist/
+.vite/
+*.local
+
+# ===== 数据库与运行产物 =====
+*.db
+*.sqlite3
+logs/
+*.log
+
+# ===== 录屏素材（体积大，视频需上传到 B站/抖音后提交链接）=====
+recordings/
+*.mp4
+*.mkv
+*.mov
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
