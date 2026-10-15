@@ -4,6 +4,10 @@
 *.key
 secrets.json
 
+# 社区帖截图含第三方用户昵称与头像。仓库是公开的，为保护无关第三方，
+# 截图只存本地、不入库；文档里保留逐字摘录即可（见 docs/社区数据采集方案.md 第五节）。
+docs/调研原始材料/社区帖/
+
 # Claude Code 本地配置里含有 API Token
 .claude/
 .claude/settings.local.json
