@@ -16,13 +16,15 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from app import __version__
 from app.constraints import check_all, summarize
-from app.llm import explain_conflicts, get_provider
+from app.llm import explain_conflicts, get_provider, stream_conflicts
 from app.models import Plan
 from app.planner import plan_completion_order
 from app.schemas import ExplainIn, PlanIn, SuggestIn
+from app.sse import SSE_HEADERS, STREAM_MEDIA_TYPE, sse_event
 from app.store import DataError, list_programs, load_majors, load_program
 
 app = FastAPI(
@@ -140,3 +142,21 @@ def explain(body: ExplainIn):
         "summary": summarize(conflicts),
         **explain_conflicts(program, conflicts),
     }
+
+
+@app.post("/api/llm/explain/stream", summary="流式解释冲突（SSE）", tags=["大模型"])
+def explain_stream(body: ExplainIn):
+    """逐块返回解释文本，用于前端的打字机与"思考可视化"。
+
+    用 POST 而不是 GET：请求体是复杂的 plan JSON，EventSource 发不出来。
+    保持同步 def 是对的 —— Starlette 会把同步生成器丢进线程池迭代，
+    于是 provider 里的阻塞调用都发生在工作线程，不占事件循环。
+    """
+    program = _get_program(body.program_id)
+    conflicts = check_all(_to_plan(body), program)
+    events = stream_conflicts(program, conflicts)
+    return StreamingResponse(
+        (sse_event(event) for event in events),
+        media_type=STREAM_MEDIA_TYPE,
+        headers=SSE_HEADERS,
+    )
