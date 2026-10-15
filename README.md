@@ -161,7 +161,8 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 ├── tools/
 │   ├── export_prompts.py          开发过程留痕导出工具
 │   ├── build_majors_json.py       官方专业目录 xlsx → JSON（可复现的数据管道）
-│   └── validate_programs_json.py  培养方案自检（纯标准库，可零依赖运行）
+│   ├── validate_programs_json.py  培养方案自检（纯标准库，可零依赖运行）
+│   └── build_tech_pdf.py          技术文档 md → PDF（pandoc + 无头 Edge）
 ├── docs/
 │   ├── prompts/             Prompt 链路记录（开发过程留痕）
 │   ├── 调研原始材料/         原始证据（社区帖截图、访谈记录、校方文件原件）
@@ -170,7 +171,8 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   ├── 社区数据采集方案.md     可复现的调研方法
 │   ├── 备赛手册.md           赛事规则、评分表、关键日期、留痕流程
 │   ├── 开发日志.md           每轮迭代的人工复盘
-│   └── 技术文档.md           （待撰写：意图控制策略、架构设计、可复现性论证）
+│   ├── 技术文档.md           意图控制策略、架构决策、可复现性论证
+│   └── 技术文档.pdf          提交用 PDF（13 页，由 tools/build_tech_pdf.py 生成）
 ├── .env.example
 └── .gitignore
 ```
