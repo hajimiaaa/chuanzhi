@@ -1,0 +1,320 @@
+/*
+ * 课径 CoursePath —— 设计令牌与基础样式。
+ *
+ * 颜色值与 lib/colors.ts 保持同步（那边供 ECharts 用，ECharts 读不了 CSS 变量）。
+ * 分类色板经 dataviz 验证脚本实测通过，浅色面上 aqua/yellow 对比度 < 3:1，
+ * 因此**必须**配可见标签（meter 上的数值）或表格视图 —— 见 CreditMeters。
+ */
+
+:root {
+  color-scheme: light;
+
+  /* 表面与文字 */
+  --surface-1: #fcfcfb;
+  --page-plane: #f9f9f7;
+  --ink-primary: #0b0b0b;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+  --gridline: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --hover-wash: rgba(11, 11, 11, 0.04);
+
+  /* 分类色（固定槽位，永不按数量重排） */
+  --cat-required: #2a78d6;
+  --cat-elective: #eb6834;
+  --cat-general: #1baf7a;
+  --cat-practice: #eda100;
+  --cat-required-track: #cde2fb;
+  --cat-elective-track: #fbdccf;
+  --cat-general-track: #cdeee1;
+  --cat-practice-track: #fbe8c6;
+  --cat-fallback: #898781;
+
+  /* 状态色（保留色，绝不复用为分类色） */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* 尺度 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 12px;
+  --gap-lg: 16px;
+  --gap-xl: 24px;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 1px 1px rgba(11, 11, 11, 0.04);
+  --shadow-pop: 0 6px 20px rgba(11, 11, 11, 0.14);
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page-plane: #0d0d0d;
+    --ink-primary: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #898781;
+    --gridline: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --hover-wash: rgba(255, 255, 255, 0.06);
+
+    /* 深色是"另选"的一组步进，不是自动翻转 */
+    --cat-required: #3987e5;
+    --cat-elective: #d95926;
+    --cat-general: #199e70;
+    --cat-practice: #c98500;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-primary);
+  background: var(--page-plane);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cat-required);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- 布局骨架 ---------- */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  padding: var(--gap-sm) var(--gap-lg);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.shell__title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--gap-lg);
+  padding: var(--gap-lg);
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .shell__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.shell__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  min-width: 0;
+}
+
+.shell__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  position: sticky;
+  top: 60px;
+}
+
+@media (max-width: 1180px) {
+  .shell__aside {
+    position: static;
+  }
+}
+
+/* ---------- 通用块 ---------- */
+
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-md);
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  margin-bottom: var(--gap-md);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-secondary);
+  letter-spacing: 0.02em;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.secondary {
+  color: var(--ink-secondary);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.tiny {
+  font-size: 11px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 徽章 ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--ink-secondary);
+  background: var(--page-plane);
+  white-space: nowrap;
+}
+
+.badge--sample {
+  border-color: var(--status-warning);
+  color: #7a5200;
+  background: #fdf4e0;
+}
+
+.badge--mono {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+}
+
+/* ---------- 按钮 ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--ink-primary);
+  font-size: 13px;
+  transition: background 120ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--hover-wash);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--cat-required);
+  border-color: var(--cat-required);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  background: var(--cat-required);
+}
+
+.btn--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-secondary);
+}
+
+/* ---------- 后端未启动提示 ---------- */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-md);
+  padding: var(--gap-md) var(--gap-lg);
+  background: #fdf1f1;
+  border-bottom: 1px solid var(--status-critical);
+  color: #6d1f1f;
+}
+
+.banner code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  background: rgba(11, 11, 11, 0.06);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-color-scheme: dark) {
+  .banner {
+    background: #2a1717;
+    color: #f0c9c9;
+  }
+}
+
+/* 减少动效偏好：所有脉冲/滑入退化为静态 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
