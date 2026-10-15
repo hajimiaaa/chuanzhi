@@ -58,8 +58,10 @@ git commit -m "feat: 完成XXX（对应本轮 AI 对话）"
 - **Python 用 `py -3.11`**，不要用 `python`（Windows 商店占位符，会报错退出 49）
 - 机器上另有 3.14，但项目统一用 3.11（生态兼容性更好）
 - 后端：FastAPI + **JSON 文件存储**（SQLite 顺延至需要写入用户规划时，见开发日志迭代 2）
-- 前端：React + Vite + TypeScript
-- 后端的启动工作目录必须是 `backend/`（入口 `app.main:app`）
+- 前端：React + Vite + TypeScript，`@dnd-kit` + ECharts（按需引入 + 懒加载）
+- 后端的启动工作目录必须是 `backend/`（入口 `app.main:app`），端口 8000
+- 前端 dev server **锁死 5173**（`strictPort`）——后端 CORS 白名单只认它，静默换端口会变成难查的跨域失败
+- 前端 API 地址走 `VITE_API_BASE`（默认 `http://127.0.0.1:8000`，不用 localhost 以避开 Windows 的 `::1` 解析）
 
 ## 架构约定
 
@@ -79,15 +81,16 @@ git commit -m "feat: 完成XXX（对应本轮 AI 对话）"
 ## 项目结构
 
 ```
-backend/app/    config / models / store / constraints / planner / llm / schemas / main
-backend/tests/  单测（约束引擎 + 接口），cd backend && pytest
+backend/app/    config / models / store / constraints / planner / llm / sse / schemas / main
+backend/tests/  单测（约束引擎 + 接口 + 流式），cd backend && pytest
+frontend/src/   api / state / hooks / lib / components，cd frontend && npm run dev
 data/           结构化数据：majors-*.json（专业目录）、programs/（培养方案）
 tools/          留痕导出、官方文件转换、培养方案自检
 docs/           备赛手册、用户调研、校方文件分析、开发日志、Prompt 链路记录
 docs/调研原始材料/  调研的原始证据（社区帖截图、访谈记录、校方文件原件）
 ```
 
-**分层铁律**：`config.py` / `models.py` / `store.py` / `constraints.py` / `planner.py` / `llm.py`
+**分层铁律**：`config.py` / `models.py` / `store.py` / `constraints.py` / `planner.py` / `llm.py` / `sse.py`
 **只允许 import 标准库**；Pydantic 只出现在 `schemas.py` 和 `main.py`。
 这样 `tools/validate_programs_json.py` 能零依赖跑通，构成独立的复现链。不要破坏它。
 
@@ -103,8 +106,10 @@ docs/调研原始材料/  调研的原始证据（社区帖截图、访谈记录
 - [x] 校方官方文件分析完成（`docs/校方文件分析.md`）
 - [x] **第一份结构化数据**：108 个专业目录 → `data/majors-枣庄学院-2024级.json`
 - [x] MVP 范围确定（见下）
-- [x] **后端骨架（数据模型 + 约束引擎）** —— 75 项单测全绿，8 个接口可跑
-- [ ] **前端** ← 当前卡在这里
+- [x] **后端骨架（数据模型 + 约束引擎）** —— 90 项单测全绿（含流式），9 个接口可跑
+- [x] **前端主线闭环** —— 选专业 → 拖拽排课 → 实时冲突 → 学分进度 → SSE 流式 AI 解读
+- [x] 后端流式增量（`Provider.stream` + SSE 帧 + 单测）
+- [ ] **`docs/技术文档.md`** ← 当前卡在这里（省赛前必须补，≤30 页 PDF）
 - [ ] 真实培养方案数据（当前 `data/programs/` 下是标注过的样例数据）
 - [ ] 21 个学院的转专业工作方案（「规则查询」模块的数据源）
 

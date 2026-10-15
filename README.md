@@ -84,20 +84,44 @@ uvicorn app.main:app --reload --port 8000
 
 ### 4. 前端
 
+⚠️ **后端必须先在另一个终端跑起来**（上一步的 `uvicorn`）。前端直连 `http://127.0.0.1:8000`，不走代理。
+
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev          # → http://localhost:5173
 ```
 
-打开 http://localhost:5173 即可。
+```bash
+npm run typecheck    # 类型检查
+npm test             # 前端单测（reducer / SSE 解帧 / 本地规则）
+npm run build        # 生产构建，可核实产物体积
+```
+
+> **dev server 锁死 5173（`strictPort`）。** 端口被占时 Vite 默认会静默升到 5174，
+> 而后端 CORS 白名单只放行 5173 —— 结果是**页面能打开、每个请求都跨域失败**，
+> 是最难排查的一种坏法。所以这里刻意让它直接报错退出。
+> 排查：`netstat -ano | findstr :5173` → `taskkill /PID <pid> /F`
+
+> **后端没起时页面不会白屏**，而是给出一条贯通顶部、附带可直接复制命令的提示。
 
 ### 5. 关于 AI 功能
 
 应用**默认运行在 mock 模式**，使用内置样例数据，所有核心功能（学分校验、冲突检测、路径规划、可视化）**均无需联网即可完整演示**。
 
 mock 不是一段无人调用的死代码——访问 `GET /api/health` 会直接看到 `"llm": {"provider": "mock"}`，
-调用 `POST /api/llm/explain` 则会返回一段由内置规则生成的中文解释，**无需任何 Key 即可现场验证这条链路**。
+调用 `POST /api/llm/explain` 会返回一段由内置规则生成的中文解释，**无需任何 Key 即可现场验证这条链路**。
+
+**流式**：`POST /api/llm/explain/stream` 以 SSE 逐块返回，mock 模式下同样是真流式 ——
+`"".join(stream)` 与 `/api/llm/explain` 返回的 `text` **逐字节相同**（有单测锁住这条等式）。
+不上浏览器也能验证：
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
+  -H "Content-Type: application/json" \
+  -d '{"program_id":"computer-science-2024-sample","items":[{"course_code":"CS101","term":3}],"completed":[]}'
+# -N 关缓冲，肉眼可见 meta → thinking → delta… 逐条到达
+```
 
 若需体验真实的大模型能力，在 `.env` 中填写 `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` 后重启后端即可
 （后端启动时会自动读取 `.env`，三个变量齐全才切换到真实模型，否则回退 mock 并打印提示）。
@@ -116,12 +140,20 @@ mock 不是一段无人调用的死代码——访问 `GET /api/health` 会直�
 │   │   ├── constraints.py   约束校验引擎（纯函数，无 I/O）
 │   │   ├── planner.py       路径规划算法
 │   │   ├── llm.py           大模型适配层（mock 优先，零第三方依赖）
+│   │   ├── sse.py           SSE 帧格式与响应头（纯标准库）
 │   │   ├── schemas.py       API 请求模型（Pydantic 只出现在这一层与 main.py）
 │   │   └── main.py          FastAPI 入口
-│   ├── tests/               约束引擎与接口单测（75 项）
+│   ├── tests/               约束引擎、接口与流式单测（90 项）
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── frontend/                React 前端
+│   ├── src/
+│   │   ├── api/             类型契约 · HTTP 客户端 · SSE 读取（stream.ts 最易出错）
+│   │   ├── state/           规划状态的纯 reducer + Context（可单测）
+│   │   ├── hooks/           探活 · 加载 · 实时校验（防抖 + 竞态守卫 + 失败不清空）
+│   │   ├── lib/             冲突登记表 · 配色令牌 · 学分派生 · 本地预判
+│   │   └── components/      泳道板 · 课程卡 · 冲突面板 · 学分 meter · 图表 · 流式解读
+│   └── vite.config.ts       dev server 锁死 5173（后端 CORS 只认它）
 ├── data/                    结构化数据
 │   ├── majors-枣庄学院-2024级.json   21 个学院 / 108 个专业（由官方文件转换）
 │   └── programs/            培养方案
@@ -138,7 +170,7 @@ mock 不是一段无人调用的死代码——访问 `GET /api/health` 会直�
 │   ├── 社区数据采集方案.md     可复现的调研方法
 │   ├── 备赛手册.md           赛事规则、评分表、关键日期、留痕流程
 │   ├── 开发日志.md           每轮迭代的人工复盘
-│   └── 技术文档.md           意图控制策略、架构设计、可复现性论证
+│   └── 技术文档.md           （待撰写：意图控制策略、架构设计、可复现性论证）
 ├── .env.example
 └── .gitignore
 ```
@@ -159,9 +191,14 @@ mock 不是一段无人调用的死代码——访问 `GET /api/health` 会直�
 
 ## 技术栈
 
-- **前端**：React + Vite + TypeScript，React Flow（依赖图）、ECharts（学分统计）
+- **前端**：React + Vite + TypeScript，`@dnd-kit`（学期泳道拖拽）、ECharts（按需引入 + 懒加载）
 - **后端**：FastAPI + **JSON 文件存储**（数据即文件，评审可直接打开核对，无需数据库即可零配置复现）
-- **大模型**：可插拔适配层，零第三方依赖，无 Key 时自动降级为 mock
+- **大模型**：可插拔适配层，零第三方依赖，无 Key 时自动降级为 mock；支持真 SSE 流式
+
+> 关于前端主视图的选型：培养方案是「学期 × 课程」的**二维表**，不是需要自由布点的有向图编辑场景，
+> 先修关系用冲突提示表达已经足够，因此没有引入 React Flow（那会多一份重依赖）。
+> ECharts 只用于「每学期负荷」一张堆叠柱，且按需引入后仍是 **179 kB (gzip)**，所以单独懒加载，
+> 不阻塞首屏（首屏 JS 约 98 kB gzip）。
 
 > 关于持久化：当前数据以 JSON 文件形式存放于 `data/`，每个文件都配有可复现的生成/校验脚本。
 > SQLite 顺延至「需要保存用户自己编辑的规划」时引入——在那之前引入只是多一层目前用不上的复杂度。
