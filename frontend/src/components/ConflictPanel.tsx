@@ -136,7 +136,7 @@ export function ConflictPanel({
 
       {stale && error && (
         <div className="conflicts__stale small">
-          本次校验失败，下方为**上一次**的结果：{error}
+          本次校验失败，下方为<strong>上一次</strong>的结果：{error}
         </div>
       )}
 
@@ -209,7 +209,7 @@ function CleanState({ onExplain }: { onExplain: () => void }) {
 function EmptyPlanState({ onRun }: { onRun: () => void }) {
   return (
     <div className="muted small" style={{ padding: '10px 0' }}>
-      规划里还没有课程。空规划**不会自动校验** —— 因为在样例数据下它会一次报出
+      规划里还没有课程。空规划<strong>不会自动校验</strong> —— 因为在样例数据下它会一次报出
       四条类别与总学分的缺口，开局就是个满屏红。
       <div style={{ marginTop: 8 }}>
         <button className="btn btn--quiet tiny" onClick={onRun}>

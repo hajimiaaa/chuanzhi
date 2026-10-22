@@ -38,6 +38,9 @@ export type PlanAction =
   | { type: 'ADD_COURSE'; courseCode: string; term: number }
   | { type: 'REMOVE_COURSE'; courseCode: string }
   | { type: 'REPLACE_PLAN'; plan: PlanState; origin: PlanOrigin; asBaseline?: boolean }
+  | { type: 'UPSERT_COMPLETED'; completed: CompletedCourse }
+  | { type: 'REMOVE_COMPLETED'; courseCode: string }
+  | { type: 'REPLACE_COMPLETED'; completed: CompletedCourse[] }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RESET_TO_SAMPLE' }
@@ -50,6 +53,11 @@ export function emptyPlan(programId: string): PlanState {
 /** 统一排序，保证「同一份规划」的签名稳定 —— 校验去重与撤销判定都依赖它 */
 export function sortItems(items: PlanItem[]): PlanItem[] {
   return [...items].sort((a, b) => a.term - b.term || a.course_code.localeCompare(b.course_code))
+}
+
+/** 成绩单按课号排序 —— 与后端的去重/排序保持一致，签名才稳定 */
+export function sortCompleted(completed: CompletedCourse[]): CompletedCourse[] {
+  return [...completed].sort((a, b) => a.course_code.localeCompare(b.course_code))
 }
 
 export function planSignature(plan: PlanState): string {
@@ -138,6 +146,26 @@ export function planReducer(state: PlanHistory, action: PlanAction): PlanHistory
       }
     }
 
+    case 'UPSERT_COMPLETED': {
+      const rest = state.current.completed.filter(
+        (c) => c.course_code !== action.completed.course_code,
+      )
+      const completed = sortCompleted([...rest, action.completed])
+      return commit(state, { ...state.current, completed }, 'manual')
+    }
+
+    case 'REMOVE_COMPLETED': {
+      const completed = state.current.completed.filter(
+        (c) => c.course_code !== action.courseCode,
+      )
+      if (completed.length === state.current.completed.length) return state
+      return commit(state, { ...state.current, completed }, 'manual')
+    }
+
+    case 'REPLACE_COMPLETED': {
+      return commit(state, { ...state.current, completed: sortCompleted(action.completed) }, 'manual')
+    }
+
     case 'RESET_TO_SAMPLE': {
       if (planSignature(state.current) === planSignature(state.baseline)) return state
       return commit(state, state.baseline, 'sample')
@@ -145,7 +173,9 @@ export function planReducer(state: PlanHistory, action: PlanAction): PlanHistory
 
     case 'CLEAR': {
       if (state.current.items.length === 0) return state
-      return commit(state, emptyPlan(state.current.programId), 'empty')
+      // 只清排课，**不清成绩单** —— "清空全部课程"是排课板上的操作，
+      // 顺手删掉用户录了半天的已修课程是数据丢失，不是清空。
+      return commit(state, { ...state.current, items: [] }, 'empty')
     }
 
     default:

@@ -6,6 +6,8 @@
 
 import { getJson, postJson, type RequestOptions } from './client'
 import type {
+  CreditGapIn,
+  CreditGapResponse,
   ExplainResponse,
   HealthResponse,
   MajorsDoc,
@@ -47,6 +49,10 @@ export const suggestOrder = (body: SuggestIn, options?: RequestOptions) =>
 
 export const explainPlan = (body: PlanIn, options?: RequestOptions) =>
   postJson<ExplainResponse>('/api/llm/explain', body, options)
+
+/** 补修/重修清单。不做跨专业折抵——`pending` 里的课只能标「待认定」。 */
+export const creditGap = (body: CreditGapIn, options?: RequestOptions) =>
+  postJson<CreditGapResponse>('/api/plan/credit-gap', body, options)
 
 export const getRules = (options?: RequestOptions) =>
   getJson<RuleListResponse>('/api/rules', options)

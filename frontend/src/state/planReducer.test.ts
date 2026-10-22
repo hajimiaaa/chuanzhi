@@ -157,3 +157,83 @@ describe('planReducer', () => {
     expect(planSignature(a)).not.toBe(planSignature(b))
   })
 })
+
+describe('已修成绩单', () => {
+  const done = (code: string, credits = 3, grade = 90, passed = true) => ({
+    course_code: code,
+    credits,
+    grade,
+    term: '',
+    passed,
+  })
+
+  it('UPSERT_COMPLETED 按课号覆盖，不会出现两条', () => {
+    const state = run(
+      createHistory('p1'),
+      { type: 'UPSERT_COMPLETED', completed: done('CS101', 5, 55, false) },
+      { type: 'UPSERT_COMPLETED', completed: done('CS101', 5, 75, true) },
+    )
+
+    expect(state.current.completed).toHaveLength(1)
+    expect(state.current.completed[0]!.passed).toBe(true)
+  })
+
+  it('成绩单按课号排序，签名才稳定', () => {
+    const state = run(
+      createHistory('p1'),
+      { type: 'UPSERT_COMPLETED', completed: done('CS201') },
+      { type: 'UPSERT_COMPLETED', completed: done('CS101') },
+    )
+
+    expect(state.current.completed.map((c) => c.course_code)).toEqual(['CS101', 'CS201'])
+  })
+
+  it('REMOVE_COMPLETED 删除；删不存在的课不污染撤销栈', () => {
+    const added = run(createHistory('p1'), { type: 'UPSERT_COMPLETED', completed: done('CS101') })
+    const removed = planReducer(added, { type: 'REMOVE_COMPLETED', courseCode: 'CS101' })
+    expect(removed.current.completed).toEqual([])
+
+    const missing = planReducer(removed, { type: 'REMOVE_COMPLETED', courseCode: 'NOPE' })
+    expect(missing).toBe(removed)
+  })
+
+  it('REPLACE_COMPLETED 整体替换（示例成绩单 / 清空都走它）', () => {
+    const state = run(createHistory('p1'), {
+      type: 'REPLACE_COMPLETED',
+      completed: [done('CS105'), done('CE101')],
+    })
+    expect(state.current.completed.map((c) => c.course_code)).toEqual(['CE101', 'CS105'])
+
+    const cleared = planReducer(state, { type: 'REPLACE_COMPLETED', completed: [] })
+    expect(cleared.current.completed).toEqual([])
+  })
+
+  it('清空排课不会顺手删掉成绩单', () => {
+    const state = run(
+      createHistory('p1'),
+      { type: 'ADD_COURSE', courseCode: 'CS101', term: 1 },
+      { type: 'UPSERT_COMPLETED', completed: done('CS105') },
+    )
+    const cleared = planReducer(state, { type: 'CLEAR' })
+
+    expect(cleared.current.items).toEqual([])
+    expect(cleared.current.completed.map((c) => c.course_code)).toEqual(['CS105'])
+  })
+
+  it('签名随成绩单变化 —— 否则补修清单不会重新计算', () => {
+    const base = createHistory('p1')
+    const withTranscript = run(base, {
+      type: 'UPSERT_COMPLETED',
+      completed: done('CS101'),
+    })
+    expect(planSignature(withTranscript.current)).not.toBe(planSignature(base.current))
+  })
+
+  it('撤销能把成绩单改回去', () => {
+    const state = run(createHistory('p1'), { type: 'UPSERT_COMPLETED', completed: done('CS101') })
+    const undone = planReducer(state, { type: 'UNDO' })
+
+    expect(undone.current.completed).toEqual([])
+    expect(canRedo(undone)).toBe(true)
+  })
+})

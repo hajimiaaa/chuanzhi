@@ -8,10 +8,13 @@
 
 import type { HealthResponse, Program } from '@/api/types'
 
-export type AppView = 'plan' | 'rules'
+// 「培养方案」与「补修核算」同属核算入口（转专业之后），
+// 「转专业规则」是认知入口（转专业之前）。两个入口，三个视图。
+export type AppView = 'plan' | 'credit' | 'rules'
 
 const VIEWS: Array<{ id: AppView; label: string }> = [
   { id: 'plan', label: '培养方案' },
+  { id: 'credit', label: '补修核算' },
   { id: 'rules', label: '转专业规则' },
 ]
 

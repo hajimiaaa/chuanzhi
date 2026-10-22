@@ -314,3 +314,49 @@ export interface RuleDoc {
 export interface RuleListResponse {
   items: RuleSummary[]
 }
+
+// ---------- 补修/重修清单（POST /api/plan/credit-gap）----------
+//
+// 这是「学分折抵」里**不需要认定办法**的那一半：课号对得上的算得出来，
+// 对不上的（原专业课程）归入 pending，等学校的《学分认定管理办法》。
+
+export interface CreditCase {
+  course_code: string
+  /** 空串表示这门课不在目标培养方案的课程库里 */
+  name: string
+  credits: number
+  category: string
+  grade: number | string | null
+  terms: number[]
+  prerequisites: string[]
+}
+
+export interface CreditGapSummary {
+  recognized: number
+  retake: number
+  remedial: number
+  pending: number
+  recognized_credits: number
+  retake_credits: number
+  remedial_credits: number
+  pending_credits: number
+  program_credits: number
+  total_min_credits: number
+}
+
+export interface CreditGapIn {
+  program_id: string
+  completed: CompletedCourse[]
+}
+
+export interface CreditGapResponse {
+  program_id: string
+  data_status: DataStatus
+  summary: CreditGapSummary
+  recognized: CreditCase[]
+  retake: CreditCase[]
+  remedial: CreditCase[]
+  pending: CreditCase[]
+  suggested: PlanSuggestion
+  notes: string[]
+}

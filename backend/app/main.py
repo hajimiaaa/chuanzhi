@@ -21,9 +21,9 @@ from fastapi.responses import StreamingResponse
 from app import __version__
 from app.constraints import check_all, summarize
 from app.llm import explain_conflicts, get_provider, stream_conflicts
-from app.models import Plan
-from app.planner import plan_completion_order
-from app.schemas import ExplainIn, PlanIn, RuleCategory, SuggestIn
+from app.models import CompletedCourse, Plan
+from app.planner import analyze_credits, plan_completion_order
+from app.schemas import CreditGapIn, ExplainIn, PlanIn, RuleCategory, SuggestIn
 from app.sse import SSE_HEADERS, STREAM_MEDIA_TYPE, sse_event
 from app.store import (
     DataError,
@@ -174,6 +174,26 @@ def suggest_order(body: SuggestIn):
     program = _get_program(body.program_id)
     suggestion = plan_completion_order(program, max_credits_per_term=body.max_credits_per_term)
     return {"program_id": program.id, "plan": suggestion.to_dict()}
+
+
+@app.post("/api/plan/credit-gap", summary="补修/重修清单（不做跨专业折抵）", tags=["规划"])
+def credit_gap(body: CreditGapIn):
+    """把已修成绩单与目标培养方案对照，分成 已认定 / 重修 / 补修 / 待认定 四类。
+
+    **这个接口不做跨专业学分折抵。** 原专业课程能否顶替目标专业课程，
+    取决于《学分认定管理办法》（尚未获取），一律归入 `pending` 并写明原因。
+    课程号直接对得上的部分（公共课、同名课）不需要那份文件就能算。
+    """
+    program = _get_program(body.program_id)
+    completed = tuple(
+        CompletedCourse.from_dict(item, "已修课程")
+        for item in body.model_dump()["completed"]
+    )
+    return {
+        "program_id": program.id,
+        "data_status": program.data_status,
+        **analyze_credits(program, completed).to_dict(),
+    }
 
 
 @app.post("/api/llm/explain", summary="用大模型解释冲突（mock 亦可验证）", tags=["大模型"])

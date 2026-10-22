@@ -13,6 +13,7 @@ import type { Conflict, MajorsDoc, PlanIn, ProgramSummary } from '@/api/types'
 import { AppShell, type AppView } from '@/components/AppShell'
 import { BackendBanner } from '@/components/BackendBanner'
 import { ConflictPanel, type FocusState } from '@/components/ConflictPanel'
+import { CreditGapView } from '@/components/CreditGapView'
 import { CreditMeters } from '@/components/CreditMeters'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExplainPanel } from '@/components/ExplainPanel'
@@ -217,6 +218,29 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
           onExplain={() => setExplainOpen(true)}
         />
         <RulesView />
+      </>
+    )
+  }
+
+  // 补修核算也属于「转专业之后」，但它不依赖排课板，只依赖培养方案。
+  if (view === 'credit') {
+    return (
+      <>
+        <AppShell
+          view="credit"
+          onViewChange={setView}
+          program={program}
+          health={health}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          isDirty={isDirty}
+          onUndo={() => dispatch({ type: 'UNDO' })}
+          onRedo={() => dispatch({ type: 'REDO' })}
+          onReset={() => dispatch({ type: 'RESET_TO_SAMPLE' })}
+          onClear={() => dispatch({ type: 'CLEAR' })}
+          onExplain={() => setExplainOpen(true)}
+        />
+        <CreditGapView program={program} />
       </>
     )
   }

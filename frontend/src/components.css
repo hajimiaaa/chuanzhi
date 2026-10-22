@@ -1246,3 +1246,149 @@
     background: #2a2312;
   }
 }
+
+/* ---------- 补修核算（CreditGapView） ---------- */
+
+.gapview__tiles {
+  margin-bottom: var(--gap-sm);
+}
+
+.gapview__note {
+  margin: var(--gap-xs) 0 0;
+}
+
+.gapview__notes {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gapview__terms {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gapview__term {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: var(--gap-sm);
+  align-items: baseline;
+}
+
+/* 清单行：课号固定宽度，名称吃掉剩余空间，元信息靠右 */
+.cases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.case {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-sm);
+  padding: 5px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.case:first-child {
+  border-top: 0;
+}
+
+.case__code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  min-width: 58px;
+}
+
+.case__name {
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case__meta {
+  white-space: nowrap;
+}
+
+/* 成绩单录入 */
+.transcript__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: var(--gap-sm);
+}
+
+.transcript__input {
+  margin-bottom: 0;
+}
+
+.transcript__form .transcript__input:first-child {
+  grid-column: 1 / -1;
+}
+
+.transcript__form .btn {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.transcript__error {
+  margin: 0 0 var(--gap-xs);
+}
+
+.transcript__actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--gap-sm);
+}
+
+.transcript__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.transcript__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.transcript__item:first-child {
+  border-top: 0;
+}
+
+.badge--pass {
+  border-color: var(--status-good);
+  color: #0a6b0a;
+  background: #eaf6ea;
+}
+
+.badge--fail {
+  border-color: var(--status-critical);
+  color: #7a1f1f;
+  background: #fdf1f1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .badge--pass {
+    color: #a8e6a8;
+    background: #14260f;
+  }
+
+  .badge--fail {
+    color: #f0c9c9;
+    background: #2a1717;
+  }
+}

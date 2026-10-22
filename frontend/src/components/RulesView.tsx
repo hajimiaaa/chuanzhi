@@ -98,7 +98,7 @@ export function RulesView() {
 
         {rule.stale && (
           <div className="rules__stale small">
-            本次请求失败，下方为**上一次**的结果：{rule.error}
+            本次请求失败，下方为<strong>上一次</strong>的结果：{rule.error}
           </div>
         )}
 

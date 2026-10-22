@@ -95,7 +95,7 @@ npm run dev          # → http://localhost:5173
 
 ```bash
 npm run typecheck    # 类型检查
-npm test             # 前端单测（reducer / SSE 解帧 / 本地规则 / 规则登记表）
+npm test             # 前端单测（reducer / SSE 解帧 / 本地预判 / 规则登记表 / 成绩单）
 npm run build        # 生产构建，可核实产物体积
 ```
 
@@ -144,7 +144,7 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   │   ├── sse.py           SSE 帧格式与响应头（纯标准库）
 │   │   ├── schemas.py       API 请求模型（Pydantic 只出现在这一层与 main.py）
 │   │   └── main.py          FastAPI 入口
-│   ├── tests/               约束引擎、接口、流式与规则单测（134 项）
+│   ├── tests/               约束引擎、接口、流式、规则与补修单测（150 项）
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── frontend/                React 前端

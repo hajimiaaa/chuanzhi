@@ -56,6 +56,15 @@ class ExplainIn(PlanIn):
     pass
 
 
+class CreditGapIn(BaseModel):
+    """补修/重修清单的请求体：只要目标专业与已修成绩单，不需要排课规划。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    program_id: str
+    completed: list[CompletedCourseIn] = []
+
+
 class SuggestIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
