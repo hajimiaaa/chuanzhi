@@ -95,7 +95,7 @@ npm run dev          # → http://localhost:5173
 
 ```bash
 npm run typecheck    # 类型检查
-npm test             # 前端单测（reducer / SSE 解帧 / 本地规则）
+npm test             # 前端单测（reducer / SSE 解帧 / 本地规则 / 规则登记表）
 npm run build        # 生产构建，可核实产物体积
 ```
 

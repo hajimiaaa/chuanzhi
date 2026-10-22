@@ -10,13 +10,14 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { describeError } from '@/api/client'
 import { getMajors, getPrograms } from '@/api/endpoints'
 import type { Conflict, MajorsDoc, PlanIn, ProgramSummary } from '@/api/types'
-import { AppShell } from '@/components/AppShell'
+import { AppShell, type AppView } from '@/components/AppShell'
 import { BackendBanner } from '@/components/BackendBanner'
 import { ConflictPanel, type FocusState } from '@/components/ConflictPanel'
 import { CreditMeters } from '@/components/CreditMeters'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExplainPanel } from '@/components/ExplainPanel'
 import { MajorPicker } from '@/components/MajorPicker'
+import { RulesView } from '@/components/RulesView'
 import { StatTiles } from '@/components/StatTiles'
 import { TermBoard } from '@/components/TermBoard'
 import { useHealth } from '@/hooks/useHealth'
@@ -120,6 +121,9 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
   const [focus, setFocus] = useState<FocusState | null>(null)
   const [courseFilter, setCourseFilter] = useState<string | null>(null)
   const [explainOpen, setExplainOpen] = useState(false)
+  // 视图状态放在 Workbench 内、PlanProvider 之下：切到认知入口再切回来，
+  // 排课编辑状态与撤销栈都还在。放到 App 层会卸载 Provider，拖了半天的课全丢。
+  const [view, setView] = useState<AppView>('plan')
   const seededRef = useRef<string | null>(null)
 
   // 用后端算出的可行解做初始态与基线 —— 空规划会让开局一次冒出 5 条学分缺口
@@ -193,6 +197,30 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
     [conflicts],
   )
 
+  // 认知入口不依赖培养方案是否加载成功 —— 它是"转专业之前"用的。
+  // 所以这个分支放在 program 的空态判断之前。
+  if (view === 'rules') {
+    return (
+      <>
+        <AppShell
+          view="rules"
+          onViewChange={setView}
+          program={null}
+          health={health}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          isDirty={isDirty}
+          onUndo={() => dispatch({ type: 'UNDO' })}
+          onRedo={() => dispatch({ type: 'REDO' })}
+          onReset={() => dispatch({ type: 'RESET_TO_SAMPLE' })}
+          onClear={() => dispatch({ type: 'CLEAR' })}
+          onExplain={() => setExplainOpen(true)}
+        />
+        <RulesView />
+      </>
+    )
+  }
+
   if (status === 'error') {
     return (
       <>
@@ -227,6 +255,8 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
   return (
     <>
       <AppShell
+        view="plan"
+        onViewChange={setView}
         program={program}
         health={health}
         canUndo={canUndo}

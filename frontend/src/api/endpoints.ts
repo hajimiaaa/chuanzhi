@@ -1,4 +1,8 @@
-/** 后端 8 个接口的薄封装。路径与响应类型一一对应 backend/app/main.py。 */
+/**
+ * 后端 JSON 接口的薄封装。路径与响应类型一一对应 backend/app/main.py。
+ *
+ * 流式接口（/api/llm/explain/stream）在 api/stream.ts 里单独处理，不走这里。
+ */
 
 import { getJson, postJson, type RequestOptions } from './client'
 import type {
@@ -8,6 +12,9 @@ import type {
   PlanIn,
   Program,
   ProgramListResponse,
+  RuleCategory,
+  RuleDoc,
+  RuleListResponse,
   SamplePlanResponse,
   SuggestIn,
   SuggestResponse,
@@ -40,3 +47,19 @@ export const suggestOrder = (body: SuggestIn, options?: RequestOptions) =>
 
 export const explainPlan = (body: PlanIn, options?: RequestOptions) =>
   postJson<ExplainResponse>('/api/llm/explain', body, options)
+
+export const getRules = (options?: RequestOptions) =>
+  getJson<RuleListResponse>('/api/rules', options)
+
+/**
+ * 传 category 时由**后端**过滤，响应里的 `filter.matched` 回显命中条数。
+ * 非法 category 后端返回 422（不是静默忽略），所以这里不做本地校验。
+ */
+export const getRule = (
+  ruleId: string,
+  category?: RuleCategory | null,
+  options?: RequestOptions,
+) => {
+  const query = category ? `?category=${encodeURIComponent(category)}` : ''
+  return getJson<RuleDoc>(`/api/rules/${encodeURIComponent(ruleId)}${query}`, options)
+}

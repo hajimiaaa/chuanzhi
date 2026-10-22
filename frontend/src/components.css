@@ -957,3 +957,292 @@
 .picker__more {
   padding: 6px 8px;
 }
+
+/* ---------- 主导航 tab（认知入口 / 核算入口） ---------- */
+
+.navtabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--page-plane);
+  border: 1px solid var(--border);
+}
+
+.navtab {
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 12px;
+}
+
+/* 刻意排除选中态：`:hover` 带伪类，特异性高于 `.navtab--active`，
+   点完之后指针正停在按钮上，会把选中态盖成悬停灰。 */
+.navtab:not(.navtab--active):hover {
+  background: var(--hover-wash);
+}
+
+.navtab.navtab--active {
+  background: var(--surface-1);
+  border-color: var(--border);
+  color: var(--ink-primary);
+  font-weight: 650;
+}
+
+/* ---------- 转专业规则视图 ---------- */
+
+.rules--loading {
+  opacity: 0.6;
+  transition: opacity 120ms ease;
+}
+
+.rules__placeholder {
+  margin: 24px;
+}
+
+.rules__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rules__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.rules__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.rules__meta {
+  margin: 0;
+}
+
+.badge--official {
+  border-color: var(--status-good);
+  color: #0a6b0a;
+  background: #eaf6ea;
+}
+
+.rules__stale {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: #fdf4e0;
+  color: #6b4a00;
+}
+
+.rules__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rules__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.chip--empty {
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+
+.rules__hint {
+  font-size: 10px;
+  color: var(--ink-muted);
+  border-left: 1px solid var(--border);
+  padding-left: 5px;
+}
+
+.rules__summary {
+  margin: calc(-1 * var(--gap-xs)) 0 0;
+}
+
+.rules__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.rules__group-question {
+  margin: calc(-1 * var(--gap-xs)) 0 var(--gap-sm);
+}
+
+.rules__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--gap-sm) 0;
+}
+
+.rules__empty-title {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.rules__footnote {
+  margin: 0;
+}
+
+/* 条款卡：左边框取 --verdict，颜色永远与 icon + 文字并存 */
+.provision {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--verdict, var(--ink-muted));
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.provision__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.provision__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--verdict, var(--ink-muted));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* 原文引用：视觉上要比结构化字段更"实"，它是唯一可回溯的证据 */
+.provision__quote {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-left: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--page-plane);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.provision__facts {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+/* ---------- 缺口（查不到的类别） ---------- */
+
+.gap__intro {
+  margin: 0 0 var(--gap-sm);
+}
+
+.gap {
+  padding: var(--gap-sm) 6px;
+  border-top: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.gap:first-of-type {
+  border-top: 0;
+}
+
+.gap--active {
+  background: var(--hover-wash);
+}
+
+.gap__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  margin-bottom: 3px;
+}
+
+.gap__detail {
+  margin: 0 0 3px;
+}
+
+.gap__where {
+  margin: 0;
+}
+
+.gap__evidence summary {
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.gap__evidence p {
+  margin: 4px 0 0;
+}
+
+.badge--gap-critical {
+  border-color: var(--status-critical);
+  color: #7a1f1f;
+  background: #fdf1f1;
+}
+
+.badge--gap-partial {
+  border-color: var(--status-warning);
+  color: #7a5200;
+  background: #fdf4e0;
+}
+
+/* ---------- 时间线 ---------- */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.timeline__item {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: var(--gap-sm);
+  align-items: start;
+}
+
+.timeline__date {
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.timeline__quote summary {
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.timeline__quote p {
+  margin: 4px 0 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rules__stale {
+    background: #2a2312;
+    color: #e8cf9a;
+  }
+
+  .badge--official {
+    color: #a8e6a8;
+    background: #14260f;
+  }
+
+  .badge--gap-critical {
+    color: #f0c9c9;
+    background: #2a1717;
+  }
+
+  .badge--gap-partial {
+    color: #e8cf9a;
+    background: #2a2312;
+  }
+}

@@ -194,3 +194,123 @@ export type StreamEvent =
   | { type: 'delta'; text: string }
   | { type: 'error'; message: string }
   | { type: 'done'; provider: string; chars: number; chunks: number; error: string }
+
+// ---------- 转专业规则（GET /api/rules、GET /api/rules/{id}）----------
+//
+// 顺序与 backend/app/models.py 的 RULE_CATEGORIES 一致。前端按这个顺序分组，
+// 不依赖后端返回的条款顺序 —— 顺序本身是语义（学生按这条路径查下来）。
+
+export const RULE_CATEGORIES = [
+  'eligibility',
+  'academic_record',
+  'score_threshold',
+  'assessment_method',
+  'major_restriction',
+  'campus_restriction',
+  'quota',
+  'credit_recognition',
+] as const
+
+export type RuleCategory = (typeof RULE_CATEGORIES)[number]
+
+export type RuleVerdict = 'deny' | 'require' | 'allow' | 'limit' | 'conditional' | 'info'
+export type RuleGapStatus = 'not_available' | 'partial'
+export type RuleDocType = 'school_notice' | 'college_plan' | 'credit_recognition_policy'
+
+/** GET /api/rules 的列表项（后端 RuleDoc.summary()） */
+export interface RuleSummary {
+  id: string
+  doc_type: RuleDocType
+  data_status: DataStatus
+  title: string
+  issued_by: string
+  issued_date: string
+  raw_file: string
+  provision_count: number
+  gap_count: number
+}
+
+export interface RuleSource {
+  school: string
+  title: string
+  origin: string
+  raw_file: string
+  generator: string
+  issuer: string
+  issued_date: string
+  doc_no: string
+}
+
+export interface RuleScope {
+  grade: string
+  student_types: string[]
+}
+
+/** 一条可检索的规则条款。`quote` 是原文逐字引用，校验脚本会回原文复核。 */
+export interface Provision {
+  id: string
+  category: RuleCategory
+  verdict: RuleVerdict
+  /** 原文条号，如「一、（二）1.（1）」 */
+  clause: string
+  quote: string
+  restricted_from: string[]
+  restricted_to: string[]
+  factors: string[]
+  /** 触发比例，如 0.3；无该语义时为 null */
+  ratio: number | null
+  /** 次数/志愿数上限；无该语义时为 null */
+  max_count: number | null
+  /** 指向另一份文件；空串表示没有 */
+  defers_to: string
+  /** true = 兜底条款，由学校/学院裁量 */
+  discretionary: boolean
+}
+
+export interface RuleTimelineStep {
+  id: string
+  label: string
+  /** ISO 日期，如 2025-02-21 */
+  deadline: string
+  clause: string
+  quote: string
+}
+
+/** 一处缺口：这类规则通知里没有，以及为什么没有、该去哪里找。 */
+export interface RuleGap {
+  category: RuleCategory
+  status: RuleGapStatus
+  detail: string
+  evidence_clause: string
+  /** 反证：这些词在原文里必须不出现，校验脚本会真的去查 */
+  absent_keywords: string[]
+  where_to_find: string
+}
+
+export interface RuleStats {
+  provisions: number
+  /** 8 个键恒定存在，计数为 0 也是信息 */
+  by_category: Record<RuleCategory, number>
+  gaps: number
+}
+
+export interface RuleDoc {
+  id: string
+  doc_type: RuleDocType
+  data_status: DataStatus
+  title: string
+  source: RuleSource
+  applies_to: RuleScope
+  /** 描述整份文件，**不随 category 过滤缩小** */
+  stats: RuleStats
+  provisions: Provision[]
+  timeline: RuleTimelineStep[]
+  gaps: RuleGap[]
+  note: string
+  /** 恒定存在的键：未过滤为 null；过滤时回显命中条数，避免与 stats 看起来矛盾 */
+  filter: { category: RuleCategory; matched: number } | null
+}
+
+export interface RuleListResponse {
+  items: RuleSummary[]
+}

@@ -90,6 +90,23 @@ export const SEVERITY_LABEL: Record<string, string> = {
   info: '提示',
 }
 
+/**
+ * 转专业规则条款的判定语义色。
+ *
+ * 同样只用状态色，**绝不复用分类色** —— 分类色跟着「课程类别」这个实体走，
+ * 借给判定用，读者会以为它们在指同一件事。
+ * 颜色永远与 icon + 文字并存，`limit` 与 `conditional` 共用黄色是可以的：
+ * 区分它们的是图标（# 与 ?）和文案，不是色相。
+ */
+export const VERDICT_COLOR: Record<string, string> = {
+  deny: STATUS.critical,
+  require: STATUS.serious,
+  allow: STATUS.good,
+  limit: STATUS.warning,
+  conditional: STATUS.warning,
+  info: '#898781',
+}
+
 // ---------- 图表框架与文字 ----------
 
 export const CHROME = {
