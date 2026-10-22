@@ -10,8 +10,9 @@
 的现场事故，演示时是灾难。要新鲜，不要缓存。
 
 用法:
-    from app.store import load_program, list_programs
+    from app.store import load_program, list_programs, load_rule, list_rules
     program = load_program("computer-science-2024-sample")
+    rules = load_rule("transfer-notice-2024")
 
 依赖: 仅标准库 + app.models
 """
@@ -19,8 +20,8 @@
 import json
 from pathlib import Path
 
-from app.config import DATA_DIR, PROGRAMS_DIR
-from app.models import ModelError, Program
+from app.config import DATA_DIR, PROGRAMS_DIR, RULES_DIR
+from app.models import ModelError, Program, RuleDoc
 
 MAJORS_GLOB = "majors-*.json"
 
@@ -78,3 +79,31 @@ def load_program(program_id: str) -> Program:
 
 def list_programs() -> list[dict]:
     return [p.summary() for p in load_programs()]
+
+
+def rules_paths() -> list[Path]:
+    if not RULES_DIR.is_dir():
+        return []
+    return sorted(RULES_DIR.glob("*.json"))
+
+
+def load_rule_by_path(path: Path) -> RuleDoc:
+    try:
+        return RuleDoc.from_dict(_read_json(path), where=path.name)
+    except ModelError as exc:
+        raise DataError(f"{path.name} 不符合转专业规则模型: {exc}")
+
+
+def load_rules() -> list[RuleDoc]:
+    return [load_rule_by_path(p) for p in rules_paths()]
+
+
+def load_rule(rule_id: str) -> RuleDoc:
+    for rule in load_rules():
+        if rule.id == rule_id:
+            return rule
+    raise DataError(f"找不到转专业规则: {rule_id}")
+
+
+def list_rules() -> list[dict]:
+    return [r.summary() for r in load_rules()]

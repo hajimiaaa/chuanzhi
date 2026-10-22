@@ -11,7 +11,7 @@
 只填空缺，绝不覆盖已存在的真实环境变量。
 
 用法:
-    from app.config import REPO_ROOT, PROGRAMS_DIR, env_str
+    from app.config import REPO_ROOT, PROGRAMS_DIR, RULES_DIR, env_str
 
 依赖: 仅标准库
 """
@@ -24,6 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
 PROGRAMS_DIR = DATA_DIR / "programs"
+RULES_DIR = DATA_DIR / "rules"
 SCHEDULE_DIR = DATA_DIR / "schedule"
 
 ENV_FILES = (REPO_ROOT / ".env", REPO_ROOT / "backend" / ".env")

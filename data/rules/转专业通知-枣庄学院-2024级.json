@@ -1,0 +1,391 @@
+{
+  "id": "transfer-notice-2024",
+  "doc_type": "school_notice",
+  "data_status": "official",
+  "title": "关于做好2024级普通全日制学生转专业的通知",
+  "source": {
+    "school": "枣庄学院",
+    "title": "关于做好2024级普通全日制学生转专业的通知",
+    "origin": "枣庄学院教务处发布的校级通知，随附 3 份附件（申请表 / 汇总表 / 专业目录一览表）",
+    "raw_file": "docs/调研原始材料/校方文件/关于做好2024级普通全日制学生转专业的通知.txt",
+    "generator": "tools/build_rules_json.py",
+    "issuer": "枣庄学院教务处",
+    "issued_date": "2025-02-17",
+    "doc_no": ""
+  },
+  "applies_to": {
+    "grade": "2024级",
+    "student_types": [
+      "普通全日制本科在校生",
+      "普通全日制专科在校生"
+    ]
+  },
+  "stats": {
+    "provisions": 17,
+    "by_category": {
+      "eligibility": 6,
+      "academic_record": 1,
+      "score_threshold": 0,
+      "assessment_method": 4,
+      "major_restriction": 3,
+      "campus_restriction": 0,
+      "quota": 2,
+      "credit_recognition": 1
+    },
+    "gaps": 5
+  },
+  "provisions": [
+    {
+      "id": "limit-one-transfer",
+      "category": "quota",
+      "verdict": "limit",
+      "clause": "一、（一）",
+      "quote": "原则上学生在校学习期间最多只能转一次专业",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": 1,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "deny-arts-sports-to-general",
+      "category": "major_restriction",
+      "verdict": "deny",
+      "clause": "一、（二）1.（1）",
+      "quote": "艺术、体育专业转到普通类专业的；",
+      "restricted_from": [
+        "艺术类专业",
+        "体育类专业"
+      ],
+      "restricted_to": [
+        "普通类专业"
+      ],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "deny-upgrade-spring-five-year-to-general",
+      "category": "major_restriction",
+      "verdict": "deny",
+      "clause": "一、（二）1.（2）",
+      "quote": "专升本类、五年制高等师范教育类、春季高考类专业转到普通类专业的；",
+      "restricted_from": [
+        "专升本类",
+        "五年制高等师范教育类",
+        "春季高考类"
+      ],
+      "restricted_to": [
+        "普通类专业"
+      ],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "deny-discretionary-unsuitable",
+      "category": "major_restriction",
+      "verdict": "deny",
+      "clause": "一、（二）1.（3）",
+      "quote": "其他经学校审核认为不适合转专业的。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": true
+    },
+    {
+      "id": "require-all-courses-passed",
+      "category": "academic_record",
+      "verdict": "require",
+      "clause": "一、（二）2.",
+      "quote": "在原专业学习期间，已修读课程考核全部合格",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "require-vice-president-approval",
+      "category": "eligibility",
+      "verdict": "require",
+      "clause": "一、（二）2.",
+      "quote": "经分管校领导批准",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "allow-injury-or-illness",
+      "category": "eligibility",
+      "verdict": "allow",
+      "clause": "一、（二）2.（1）",
+      "quote": "学生入学后因伤致残或发现患某种疾病、生理缺陷，经学校指定二级甲等及以上医院诊断证明，不能在原专业学习，但尚能在本校其他专业学习的；",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "allow-major-discontinued",
+      "category": "eligibility",
+      "verdict": "allow",
+      "clause": "一、（二）2.（2）",
+      "quote": "保留入学资格的新生或休学学生，入（复）学时学校已停办其原专业的；",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "allow-entrepreneurship-or-veteran",
+      "category": "eligibility",
+      "verdict": "allow",
+      "clause": "一、（二）2.（3）",
+      "quote": "休学创业或退役后复学的学生，因自身情况需要转专业的；",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "allow-school-adjustment",
+      "category": "eligibility",
+      "verdict": "allow",
+      "clause": "一、（二）2.（4）",
+      "quote": "根据社会对人才需求情况的发展变化，学校认为需要调整专业的；",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "allow-learning-difficulty",
+      "category": "eligibility",
+      "verdict": "allow",
+      "clause": "一、（二）2.（5）",
+      "quote": "确有学习困难的，不转专业无法继续学习的。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "assessment-trigger-over-30pct",
+      "category": "assessment_method",
+      "verdict": "conditional",
+      "clause": "一、（三）",
+      "quote": "转入学生数超过转入专业当年招生人数的30%时，需按照转入学院制定的考核方案择优选择。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": 0.3,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "assessment-factors-by-college",
+      "category": "assessment_method",
+      "verdict": "info",
+      "clause": "二、（一）",
+      "quote": "拟采取的考核方案应充分考虑拟转入学生已修课程学习情况、专业基础、高考选考科目、高考成绩、单科成绩以及综合素质等。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [
+        "已修课程学习情况",
+        "专业基础",
+        "高考选考科目",
+        "高考成绩",
+        "单科成绩",
+        "综合素质"
+      ],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "where-college-plan-is-published",
+      "category": "assessment_method",
+      "verdict": "info",
+      "clause": "二、（一）",
+      "quote": "各学院将确定的转专业方案在本学院网站公示",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "各学院网站公示的《转专业工作方案》",
+      "discretionary": false
+    },
+    {
+      "id": "limit-one-application",
+      "category": "quota",
+      "verdict": "limit",
+      "clause": "二、（二）",
+      "quote": "每位学生仅可申请1个转专业志愿",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": 1,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "default-accept-by-receiving-college",
+      "category": "assessment_method",
+      "verdict": "allow",
+      "clause": "二、（三）",
+      "quote": "转专业坚持以学生为本，尊重学生自主成才意愿，转入学院原则上应予以接收。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "",
+      "discretionary": false
+    },
+    {
+      "id": "credit-recognition-deferred",
+      "category": "credit_recognition",
+      "verdict": "info",
+      "clause": "三、3.",
+      "quote": "在原专业修读课程学分的认定，按照学校相关学分认定管理方法执行。",
+      "restricted_from": [],
+      "restricted_to": [],
+      "factors": [],
+      "ratio": null,
+      "max_count": null,
+      "defers_to": "《学校学分认定管理办法》（尚未获取）",
+      "discretionary": false
+    }
+  ],
+  "timeline": [
+    {
+      "id": "publish-college-plan",
+      "label": "各学院制定并公示本学院转专业工作方案",
+      "deadline": "2025-02-14",
+      "clause": "二、（一）",
+      "quote": "（一）确定转专业工作方案（2025年2月14日前完成）"
+    },
+    {
+      "id": "student-apply",
+      "label": "学生提交申请（交至转出学院）",
+      "deadline": "2025-02-21",
+      "clause": "二、（二）",
+      "quote": "（二）学生申请（2025年2月21日前完成）"
+    },
+    {
+      "id": "assessment",
+      "label": "转专业考核完成",
+      "deadline": "2025-03-03",
+      "clause": "二、（三）",
+      "quote": "（三）转专业考核（2025年3月3日前完成）"
+    },
+    {
+      "id": "review-and-publicity",
+      "label": "教务处审核并对拟同意名单公示（不少于 3 天）",
+      "deadline": "2025-03-05",
+      "clause": "二、（四）",
+      "quote": "（四）审核公示（2025年3月5日前完成）"
+    },
+    {
+      "id": "school-approval",
+      "label": "学校审批、发文确定同意名单",
+      "deadline": "2025-03-07",
+      "clause": "二、（五）",
+      "quote": "（五）学校审批（2025年3月7日前完成）"
+    }
+  ],
+  "gaps": [
+    {
+      "category": "score_threshold",
+      "status": "not_available",
+      "detail": "校级通知未规定任何分数门槛。通知只要求「已修读课程考核全部合格」，并把计划数与考核方案交给各学院自行制定。",
+      "evidence_clause": "二、（一）",
+      "absent_keywords": [
+        "门槛",
+        "分数线",
+        "绩点",
+        "70"
+      ],
+      "where_to_find": "21 个学院的《转专业工作方案》（各学院网站公示），尚未采集"
+    },
+    {
+      "category": "assessment_method",
+      "status": "partial",
+      "detail": "通知规定了启动考核的条件与学院应考量的因素，但未规定具体形式——是笔试、面试还是材料审核，以及各占多少权重。",
+      "evidence_clause": "一、（三）",
+      "absent_keywords": [
+        "笔试",
+        "面试"
+      ],
+      "where_to_find": "同上，各学院《转专业工作方案》"
+    },
+    {
+      "category": "campus_restriction",
+      "status": "not_available",
+      "detail": "通知全文未涉及跨校区转专业是否受限。",
+      "evidence_clause": "",
+      "absent_keywords": [
+        "校区"
+      ],
+      "where_to_find": "需向教务处确认（docs/校方文件分析.md 第七节已列为待确认）"
+    },
+    {
+      "category": "credit_recognition",
+      "status": "not_available",
+      "detail": "通知把学分认定指向另一份文件，本身未给任何认定细则。",
+      "evidence_clause": "三、3.",
+      "absent_keywords": [
+        "折算",
+        "互认"
+      ],
+      "where_to_find": "《学校学分认定管理办法》（尚未获取）"
+    },
+    {
+      "category": "major_restriction",
+      "status": "partial",
+      "detail": "通知使用「艺术、体育专业」的表述，但从未给出「艺术类 / 体育类」的界定，《专业目录一览表》里也没有对应标注——无法从 data/majors-*.json 判定某个专业是否落入该条。专升本 / 春季高考 / 五年制高等师范教育类可由目录 tags 判定。",
+      "evidence_clause": "一、（二）1.（1）",
+      "absent_keywords": [
+        "艺术类",
+        "体育类"
+      ],
+      "where_to_find": "需人工确认专业归属（如空乘是否属艺术类）"
+    }
+  ],
+  "note": "本文件只承载校级通知能支撑的规则；查不到的类别见 gaps。一、（二）2. 的五类「可以转专业」情形是并列关系，共同前提是「已修读课程考核全部合格」并经分管校领导批准——条款以扁平列表给出，组合关系看 clause 相同的条目。通知未定义「合格」的分数线，本模块不替学校假定为 60 分。引文为原文逐字，仅去掉全部空白字符。"
+}

@@ -14,7 +14,7 @@
 时序问题。数据在请求时惰性加载，行为在任何入口下都一致。
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -23,9 +23,16 @@ from app.constraints import check_all, summarize
 from app.llm import explain_conflicts, get_provider, stream_conflicts
 from app.models import Plan
 from app.planner import plan_completion_order
-from app.schemas import ExplainIn, PlanIn, SuggestIn
+from app.schemas import ExplainIn, PlanIn, RuleCategory, SuggestIn
 from app.sse import SSE_HEADERS, STREAM_MEDIA_TYPE, sse_event
-from app.store import DataError, list_programs, load_majors, load_program
+from app.store import (
+    DataError,
+    list_programs,
+    list_rules,
+    load_majors,
+    load_program,
+    load_rule,
+)
 
 app = FastAPI(
     title="课径 CoursePath API",
@@ -98,6 +105,43 @@ def get_programs():
 @app.get("/api/programs/{program_id}", summary="培养方案详情", tags=["数据"])
 def get_program(program_id: str):
     return _get_program(program_id).to_dict()
+
+
+@app.get("/api/rules", summary="转专业规则清单", tags=["规则"])
+def get_rules():
+    try:
+        return {"items": list_rules()}
+    except DataError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.get("/api/rules/{rule_id}", summary="单份规则全文（可按类别过滤）", tags=["规则"])
+def get_rule(
+    rule_id: str,
+    category: RuleCategory | None = Query(
+        None,
+        description="只看某一类规则；不传则返回全部条款。非法取值由 FastAPI 自动 422。",
+    ),
+):
+    """返回结构化的规则全文，含 `gaps`——查不到的那几类同样是要交付的答案。
+
+    `stats` 描述的是整份文件，不随过滤变化。所以过滤时额外回显 `filter`
+    （含命中条数），否则 `provisions` 3 条、`stats.provisions` 17 条会像是一个 bug。
+    字段恒定存在（不传时是 null），键集合不随参数变形。
+    """
+    try:
+        doc = load_rule(rule_id)
+    except DataError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    payload = doc.to_dict()
+    payload["filter"] = None
+    if category is not None:
+        payload["provisions"] = [
+            p for p in payload["provisions"] if p["category"] == category.value
+        ]
+        payload["filter"] = {"category": category.value, "matched": len(payload["provisions"])}
+    return payload
 
 
 @app.get("/api/programs/{program_id}/sample-plan", summary="开箱即用的样例规划", tags=["规划"])

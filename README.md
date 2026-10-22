@@ -73,6 +73,7 @@ cp .env.example .env            # 无需填写任何值，留空即可运行
 
 # ① 数据自检 —— 纯标准库，不装依赖也能跑
 py -3.11 tools/validate_programs_json.py
+py -3.11 tools/validate_rules_json.py
 
 # ② 约束引擎单测 —— 应全部通过
 cd backend
@@ -143,7 +144,7 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   │   ├── sse.py           SSE 帧格式与响应头（纯标准库）
 │   │   ├── schemas.py       API 请求模型（Pydantic 只出现在这一层与 main.py）
 │   │   └── main.py          FastAPI 入口
-│   ├── tests/               约束引擎、接口与流式单测（90 项）
+│   ├── tests/               约束引擎、接口、流式与规则单测（134 项）
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── frontend/                React 前端
@@ -156,12 +157,16 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   └── vite.config.ts       dev server 锁死 5173（后端 CORS 只认它）
 ├── data/                    结构化数据
 │   ├── majors-枣庄学院-2024级.json   21 个学院 / 108 个专业（由官方文件转换）
+│   ├── rules/               转专业规则（结构化的准入条件，含"查不到"清单）
+│   │   └── 转专业通知-枣庄学院-2024级.json
 │   └── programs/            培养方案
 │       └── 样例-计算机科学与技术.json   ⚠️ 样例数据，课程与学分为演示用，待替换
 ├── tools/
 │   ├── export_prompts.py          开发过程留痕导出工具
 │   ├── build_majors_json.py       官方专业目录 xlsx → JSON（可复现的数据管道）
+│   ├── build_rules_json.py        转专业通知 txt → JSON（引用逐字回溯）
 │   ├── validate_programs_json.py  培养方案自检（纯标准库，可零依赖运行）
+│   ├── validate_rules_json.py     转专业规则自检（引用回溯 + 缺口反证）
 │   └── build_tech_pdf.py          技术文档 md → PDF（pandoc + 无头 Edge）
 ├── docs/
 │   ├── prompts/             Prompt 链路记录（开发过程留痕）

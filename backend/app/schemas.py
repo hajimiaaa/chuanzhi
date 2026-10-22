@@ -15,7 +15,16 @@
 依赖: pydantic
 """
 
+from enum import Enum
+
 from pydantic import BaseModel, ConfigDict
+
+from app.models import RULE_CATEGORIES
+
+# 规则类别的查询参数类型，**从 models 的枚举派生**而不是手抄一份。
+# 手抄一定会漂移：models 里加了新类别，接口却继续 422，而且没人会立刻发现。
+# 派生之后，FastAPI 自动对非法类别返回 422，错误信息里还会带上全部合法取值。
+RuleCategory = Enum("RuleCategory", {c: c for c in RULE_CATEGORIES}, type=str)
 
 
 class PlanItemIn(BaseModel):

@@ -41,6 +41,32 @@ FAIL_MARKS = ("不及格", "不合格", "未通过", "缺考", "违纪", "作弊
 
 PASS_MARK = 60.0
 
+# ---------- 转专业规则常量 ----------
+# 规则条款按「学生想知道什么」分类，而不是按原文的章节顺序分类。
+# 认知入口要回答的问题正是这几类，缺哪一类、哪一类没数据，一眼可见。
+
+RULE_DOC_TYPES = ("school_notice", "college_plan", "credit_recognition_policy")
+
+RULE_CATEGORIES = (
+    "eligibility",          # 什么情形下可以转（含必须经谁批准）
+    "academic_record",      # 挂科要求：已修读课程是否必须全部合格
+    "score_threshold",      # 分数门槛：绩点 / 单科成绩 / 通识课分数线
+    "assessment_method",    # 考核方式：要不要笔试、面试，怎么算分
+    "major_restriction",    # 专业限制：哪些专业不能互转
+    "campus_restriction",   # 校区限制：跨校区是否额外受限
+    "quota",                # 次数与志愿数上限
+    "credit_recognition",   # 转入后的学分认定依据
+)
+
+RULE_VERDICTS = ("deny", "require", "allow", "limit", "conditional", "info")
+
+GAP_STATUS_NOT_AVAILABLE = "not_available"
+GAP_STATUS_PARTIAL = "partial"
+GAP_STATUSES = (GAP_STATUS_NOT_AVAILABLE, GAP_STATUS_PARTIAL)
+
+# 溯源块的必需键，与 data/majors-枣庄学院-2024级.json 的 source 块保持一致。
+SOURCE_REQUIRED_KEYS = ("school", "title", "origin", "raw_file", "generator")
+
 
 class ModelError(ValueError):
     """数据不符合领域模型。消息里带上出错位置，便于定位。"""
@@ -53,6 +79,44 @@ def _req(d: dict, key: str, where: str) -> Any:
     if key not in d:
         raise ModelError(f"{where} 缺少必填字段 `{key}`")
     return d[key]
+
+
+def _text(d: dict, key: str, where: str) -> str:
+    value = str(_req(d, key, where) or "").strip()
+    if not value:
+        raise ModelError(f"{where} 的 `{key}` 不能为空")
+    return value
+
+
+def _opt_text(d: dict, key: str) -> str:
+    return str(d.get(key) or "").strip()
+
+
+def _str_tuple(value, where: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise ModelError(f"{where} 必须是数组")
+    return tuple(text for text in (str(v).strip() for v in value) if text)
+
+
+def _seq(d: dict, key: str, where: str) -> list:
+    value = d.get(key) or []
+    if not isinstance(value, list):
+        raise ModelError(f"{where} 的 `{key}` 必须是数组")
+    return value
+
+
+def _opt_float(value, where: str) -> float | None:
+    return None if value is None else _to_float(value, where)
+
+
+def _opt_int(value, where: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ModelError(f"{where} 必须是整数: {value!r}")
+    return value
 
 
 def _grade_passed(grade) -> bool:
@@ -301,6 +365,349 @@ class Program:
             "total_terms": self.total_terms,
             "total_min_credits": self.total_min_credits,
             "course_count": len(self.courses),
+        }
+
+
+# ---------- 转专业规则 ----------
+#
+# 规则数据的设计要点：**装得下的一律逐字引用，装不下的一律显式列为缺口。**
+#
+# 校级通知只给了框架（30% 触发考核），真正的分数门槛散在 21 个学院的方案里。
+# 与其编一个好看的数字，不如让 `gaps` 把"查不到"本身变成一条可查询的数据——
+# 每条缺口都带 `absent_keywords`（反证：这些词在原文里必须不出现），
+# 于是"我们没找到"是一句可以被机器复核的话，而不是一句托词。
+
+
+@dataclass(frozen=True, slots=True)
+class RuleSource:
+    """规则文件的溯源块。必需键与 data/majors-*.json 的 source 块一致。
+
+    刻意做成强类型而不是自由 dict：`Conflict` 那条理由在这里同样成立——
+    自由 dict 让 frozen 变成假象，且溯源块恰恰是最不能随手塞东西的地方。
+    """
+
+    school: str
+    title: str
+    origin: str
+    raw_file: str
+    generator: str
+    issuer: str = ""
+    issued_date: str = ""
+    doc_no: str = ""
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "source") -> "RuleSource":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+        for key in SOURCE_REQUIRED_KEYS:
+            if not str(d.get(key) or "").strip():
+                raise ModelError(f"{where} 缺少必填字段 `{key}`")
+        raw_file = str(d["raw_file"]).strip()
+        if "\\" in raw_file:
+            raise ModelError(f"{where} 的 raw_file 必须是仓库相对路径且用正斜杠: {raw_file}")
+        return cls(
+            school=str(d["school"]).strip(),
+            title=str(d["title"]).strip(),
+            origin=str(d["origin"]).strip(),
+            raw_file=raw_file,
+            generator=str(d["generator"]).strip(),
+            issuer=str(d.get("issuer") or "").strip(),
+            issued_date=str(d.get("issued_date") or "").strip(),
+            doc_no=str(d.get("doc_no") or "").strip(),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "school": self.school,
+            "title": self.title,
+            "origin": self.origin,
+            "raw_file": self.raw_file,
+            "generator": self.generator,
+            "issuer": self.issuer,
+            "issued_date": self.issued_date,
+            "doc_no": self.doc_no,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RuleScope:
+    """这份规则约束谁。"""
+
+    grade: str
+    student_types: tuple[str, ...] = ()
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "applies_to") -> "RuleScope":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+        return cls(
+            grade=_text(d, "grade", where),
+            student_types=_str_tuple(d.get("student_types"), f"{where} 的 student_types"),
+        )
+
+    def to_dict(self) -> dict:
+        return {"grade": self.grade, "student_types": list(self.student_types)}
+
+
+@dataclass(frozen=True, slots=True)
+class Provision:
+    """一条可检索的规则条款。一条 = 原文里的一段话，不是一次释义。
+
+    `quote` 是逐字引用，必须能在 `raw_file` 里原样找到（校验脚本会抹掉空白后比对）。
+    这是本模块最硬的约束：任何人拿到产物，都能独立验证我们没有编造条款。
+    """
+
+    id: str
+    category: str
+    verdict: str
+    clause: str
+    quote: str
+    restricted_from: tuple[str, ...] = ()
+    restricted_to: tuple[str, ...] = ()
+    factors: tuple[str, ...] = ()
+    ratio: float | None = None
+    max_count: int | None = None
+    defers_to: str = ""
+    discretionary: bool = False
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "provision") -> "Provision":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+        pid = _text(d, "id", where)
+        where = f"条款 {pid}"
+        category = _text(d, "category", where)
+        if category not in RULE_CATEGORIES:
+            raise ModelError(f"{where} 的类别 {category!r} 不在 {RULE_CATEGORIES} 中")
+        verdict = _text(d, "verdict", where)
+        if verdict not in RULE_VERDICTS:
+            raise ModelError(f"{where} 的判定 {verdict!r} 不在 {RULE_VERDICTS} 中")
+        return cls(
+            id=pid,
+            category=category,
+            verdict=verdict,
+            clause=_text(d, "clause", where),
+            quote=_text(d, "quote", where),
+            restricted_from=_str_tuple(d.get("restricted_from"), f"{where} 的 restricted_from"),
+            restricted_to=_str_tuple(d.get("restricted_to"), f"{where} 的 restricted_to"),
+            factors=_str_tuple(d.get("factors"), f"{where} 的 factors"),
+            ratio=_opt_float(d.get("ratio"), f"{where} 的 ratio"),
+            max_count=_opt_int(d.get("max_count"), f"{where} 的 max_count"),
+            defers_to=_opt_text(d, "defers_to"),
+            discretionary=bool(d.get("discretionary") or False),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "category": self.category,
+            "verdict": self.verdict,
+            "clause": self.clause,
+            "quote": self.quote,
+            "restricted_from": list(self.restricted_from),
+            "restricted_to": list(self.restricted_to),
+            "factors": list(self.factors),
+            "ratio": self.ratio,
+            "max_count": self.max_count,
+            "defers_to": self.defers_to,
+            "discretionary": self.discretionary,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class TimelineStep:
+    """时间线上的一个节点。
+
+    `deadline` 是规范化的 ISO 日期，`quote` 保留原文写法（通知写作"2025 年 2 月 14 日"）。
+    规范化只是排版，原文就在旁边，可对照。
+    """
+
+    id: str
+    label: str
+    deadline: str
+    quote: str
+    clause: str = ""
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "timeline") -> "TimelineStep":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+        sid = _text(d, "id", where)
+        where = f"时间线 {sid}"
+        return cls(
+            id=sid,
+            label=_text(d, "label", where),
+            deadline=_text(d, "deadline", where),
+            quote=_text(d, "quote", where),
+            clause=_opt_text(d, "clause"),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "deadline": self.deadline,
+            "clause": self.clause,
+            "quote": self.quote,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RuleGap:
+    """一条缺口：这类规则我们**没有**，以及为什么没有、该去哪里找。
+
+    对认知入口来说，这条数据的价值和条款是同等的——学生问"通识课真卡 70 分吗"，
+    "校级通知没规定，答案在学院方案里"本身就是答案。
+    """
+
+    category: str
+    status: str
+    detail: str
+    evidence_clause: str = ""
+    absent_keywords: tuple[str, ...] = ()
+    where_to_find: str = ""
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "gap") -> "RuleGap":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+        category = _text(d, "category", where)
+        if category not in RULE_CATEGORIES:
+            raise ModelError(f"{where} 的类别 {category!r} 不在 {RULE_CATEGORIES} 中")
+        status = _text(d, "status", where)
+        if status not in GAP_STATUSES:
+            raise ModelError(f"{where} 的状态 {status!r} 不在 {GAP_STATUSES} 中")
+        where = f"缺口 {category}"
+        return cls(
+            category=category,
+            status=status,
+            detail=_text(d, "detail", where),
+            evidence_clause=_opt_text(d, "evidence_clause"),
+            absent_keywords=_str_tuple(d.get("absent_keywords"), f"{where} 的 absent_keywords"),
+            where_to_find=_opt_text(d, "where_to_find"),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "category": self.category,
+            "status": self.status,
+            "detail": self.detail,
+            "evidence_clause": self.evidence_clause,
+            "absent_keywords": list(self.absent_keywords),
+            "where_to_find": self.where_to_find,
+        }
+
+
+@dataclass(frozen=True)
+class RuleDoc:
+    """一份来源文件的结构化结果。一份文件 = 一个 JSON。"""
+
+    id: str
+    doc_type: str
+    data_status: str
+    title: str
+    source: RuleSource
+    applies_to: RuleScope
+    provisions: tuple[Provision, ...] = ()
+    timeline: tuple[TimelineStep, ...] = ()
+    gaps: tuple[RuleGap, ...] = ()
+    note: str = ""
+
+    @classmethod
+    def from_dict(cls, d: dict, where: str = "规则文件") -> "RuleDoc":
+        if not isinstance(d, dict):
+            raise ModelError(f"{where} 必须是对象")
+
+        rid = _text(d, "id", where)
+        where = f"规则文件 {rid}"
+
+        doc_type = _text(d, "doc_type", where)
+        if doc_type not in RULE_DOC_TYPES:
+            raise ModelError(f"{where} 的 doc_type {doc_type!r} 不在 {RULE_DOC_TYPES} 中")
+
+        data_status = str(d.get("data_status") or DATA_STATUS_SAMPLE).strip()
+        if data_status not in (DATA_STATUS_SAMPLE, DATA_STATUS_OFFICIAL):
+            raise ModelError(f"{where} 的 data_status 非法: {data_status!r}")
+
+        provisions = tuple(
+            Provision.from_dict(p, f"{where} 的 provisions")
+            for p in _seq(d, "provisions", where)
+        )
+        pids = [p.id for p in provisions]
+        dupes = sorted({pid for pid in pids if pids.count(pid) > 1})
+        if dupes:
+            raise ModelError(f"{where} 存在重复条款 id: {', '.join(dupes)}")
+
+        return cls(
+            id=rid,
+            doc_type=doc_type,
+            data_status=data_status,
+            title=_text(d, "title", where),
+            source=RuleSource.from_dict(_req(d, "source", where), f"{where} 的 source"),
+            applies_to=RuleScope.from_dict(
+                _req(d, "applies_to", where), f"{where} 的 applies_to"
+            ),
+            provisions=provisions,
+            timeline=tuple(
+                TimelineStep.from_dict(s, f"{where} 的 timeline")
+                for s in _seq(d, "timeline", where)
+            ),
+            gaps=tuple(
+                RuleGap.from_dict(g, f"{where} 的 gaps") for g in _seq(d, "gaps", where)
+            ),
+            note=_opt_text(d, "note"),
+        )
+
+    def stats(self) -> dict:
+        """统计是算出来的，不是存下来的——存一份就有漂移的可能。
+
+        `by_category` 刻意列出全部类别（含计数为 0 的）：零本身就是信息，
+        它让"这一类别通知里没有"在接口响应里直接可见。
+        """
+        by_category = {category: 0 for category in RULE_CATEGORIES}
+        for provision in self.provisions:
+            by_category[provision.category] += 1
+        return {
+            "provisions": len(self.provisions),
+            "by_category": by_category,
+            "gaps": len(self.gaps),
+        }
+
+    def by_id(self, provision_id: str) -> Provision | None:
+        for provision in self.provisions:
+            if provision.id == provision_id:
+                return provision
+        return None
+
+    def in_category(self, category: str) -> tuple[Provision, ...]:
+        return tuple(p for p in self.provisions if p.category == category)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "doc_type": self.doc_type,
+            "data_status": self.data_status,
+            "title": self.title,
+            "source": self.source.to_dict(),
+            "applies_to": self.applies_to.to_dict(),
+            "stats": self.stats(),
+            "provisions": [p.to_dict() for p in self.provisions],
+            "timeline": [s.to_dict() for s in self.timeline],
+            "gaps": [g.to_dict() for g in self.gaps],
+            "note": self.note,
+        }
+
+    def summary(self) -> dict:
+        return {
+            "id": self.id,
+            "doc_type": self.doc_type,
+            "data_status": self.data_status,
+            "title": self.title,
+            "issued_by": self.source.issuer,
+            "issued_date": self.source.issued_date,
+            "raw_file": self.source.raw_file,
+            "provision_count": len(self.provisions),
+            "gap_count": len(self.gaps),
         }
 
 

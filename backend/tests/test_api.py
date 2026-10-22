@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 SAMPLE = "computer-science-2024-sample"
+RULE = "transfer-notice-2024"
 
 
 @pytest.fixture
@@ -46,6 +47,109 @@ def test_programs_list_and_detail(client):
 
 def test_unknown_program_returns_404(client):
     assert client.get("/api/programs/nope").status_code == 404
+
+
+def test_rules_list(client):
+    items = client.get("/api/rules").json()["items"]
+    assert any(r["id"] == RULE for r in items)
+    assert set(items[0]) == {
+        "id",
+        "doc_type",
+        "data_status",
+        "title",
+        "issued_by",
+        "issued_date",
+        "raw_file",
+        "provision_count",
+        "gap_count",
+    }
+
+
+def test_rules_detail_shape_is_stable(client):
+    """锁住前端实际收到的 key 集合 —— 比 response_model 更直接。"""
+    body = client.get(f"/api/rules/{RULE}").json()
+    assert set(body) == {
+        "id",
+        "doc_type",
+        "data_status",
+        "title",
+        "source",
+        "applies_to",
+        "stats",
+        "provisions",
+        "timeline",
+        "gaps",
+        "note",
+        "filter",
+    }
+    assert body["filter"] is None
+    assert body["data_status"] == "official"
+    assert body["source"]["raw_file"].endswith(".txt")
+    for provision in body["provisions"]:
+        assert set(provision) == {
+            "id",
+            "category",
+            "verdict",
+            "clause",
+            "quote",
+            "restricted_from",
+            "restricted_to",
+            "factors",
+            "ratio",
+            "max_count",
+            "defers_to",
+            "discretionary",
+        }
+
+
+def test_rules_detail_reports_gaps_for_what_the_notice_cannot_answer(client):
+    """认知入口最该被看到的一屏：查不到的那几类，以及该去哪查。"""
+    gaps = {g["category"]: g for g in client.get(f"/api/rules/{RULE}").json()["gaps"]}
+    assert gaps["score_threshold"]["status"] == "not_available"
+    assert gaps["campus_restriction"]["status"] == "not_available"
+    assert gaps["major_restriction"]["status"] == "partial"
+    assert gaps["score_threshold"]["where_to_find"]
+
+
+def test_rules_stats_show_empty_categories(client):
+    """计数为 0 的类别要留在响应里 —— 空列表也是一种答案。"""
+    by_category = client.get(f"/api/rules/{RULE}").json()["stats"]["by_category"]
+    assert by_category["score_threshold"] == 0
+    assert by_category["campus_restriction"] == 0
+    assert by_category["major_restriction"] > 0
+
+
+def test_rules_category_filter(client):
+    body = client.get(f"/api/rules/{RULE}", params={"category": "major_restriction"}).json()
+    assert body["provisions"]
+    assert {p["category"] for p in body["provisions"]} == {"major_restriction"}
+    assert body["filter"] == {"category": "major_restriction", "matched": len(body["provisions"])}
+
+
+def test_rules_filter_does_not_shrink_document_stats(client):
+    """过滤是视图，stats 描述的是整份文件。两者不一致时由 filter 回显说清楚，
+    否则 'provisions 只有 3 条、stats 却说 17 条' 看起来就是个 bug。"""
+    body = client.get(f"/api/rules/{RULE}", params={"category": "major_restriction"}).json()
+    assert body["stats"]["provisions"] > len(body["provisions"])
+    assert body["filter"]["matched"] == len(body["provisions"])
+
+
+def test_rules_category_filter_keeps_empty_result(client):
+    """过滤后为空是合法结果（这一类通知里没有），不能变成 404。"""
+    body = client.get(f"/api/rules/{RULE}", params={"category": "score_threshold"}).json()
+    assert body["provisions"] == []
+    assert body["filter"] == {"category": "score_threshold", "matched": 0}
+    assert body["gaps"]
+
+
+def test_unknown_rule_category_is_rejected_loudly(client):
+    """类别写错必须是 422，而不是静默返回全部条款。"""
+    response = client.get(f"/api/rules/{RULE}", params={"category": "nope"})
+    assert response.status_code == 422
+
+
+def test_unknown_rule_returns_404(client):
+    assert client.get("/api/rules/nope").status_code == 404
 
 
 def test_sample_plan_endpoint_plans_everything(client):

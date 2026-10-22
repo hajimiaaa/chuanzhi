@@ -25,7 +25,13 @@ from app.models import (  # noqa: E402
     Plan,
     PlanItem,
     Program,
+    Provision,
+    RuleDoc,
+    RuleGap,
+    RuleScope,
+    RuleSource,
     TimeSlot,
+    TimelineStep,
 )
 
 
@@ -131,6 +137,44 @@ def no_schedule_program():
         STD_RULES,
         total_min=18.0,
         max_per_term=10.0,
+    )
+
+
+def provision(pid, category="academic_record", verdict="require", quote="引用", clause="一、（一）", **kw):
+    return Provision(
+        id=pid, category=category, verdict=verdict, clause=clause, quote=quote, **kw
+    )
+
+
+def make_rule_doc(provisions=(), timeline=(), gaps=(), rid="r1"):
+    return RuleDoc(
+        id=rid,
+        doc_type="school_notice",
+        data_status="official",
+        title="测试通知",
+        source=RuleSource(
+            school="测试大学",
+            title="测试通知",
+            origin="测试用",
+            raw_file="docs/测试.txt",
+            generator="tools/build_rules_json.py",
+        ),
+        applies_to=RuleScope(grade="2024级", student_types=("本科在校生",)),
+        provisions=tuple(provisions),
+        timeline=tuple(timeline),
+        gaps=tuple(gaps),
+        note="",
+    )
+
+
+@pytest.fixture
+def rule_doc():
+    return make_rule_doc(
+        provisions=[provision("p1")],
+        timeline=[TimelineStep(id="t1", label="提交申请", deadline="2025-02-21",
+                               quote="引用", clause="二、（一）")],
+        gaps=[RuleGap(category="score_threshold", status="not_available",
+                      detail="通知未规定", absent_keywords=("分数线",))],
     )
 
 
