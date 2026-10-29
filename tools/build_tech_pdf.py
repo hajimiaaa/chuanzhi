@@ -84,8 +84,10 @@ def main() -> int:
     parser.add_argument("--edge", default="", help="Edge 可执行文件路径（默认自动查找）")
     args = parser.parse_args()
 
-    md = Path(args.md)
-    pdf = Path(args.pdf)
+    # 解析成绝对路径：Edge 的 --print-to-pdf 不接受相对输出路径，
+    # 而 docstring 里的用法示例正是相对路径（`--md docs/… --pdf docs/…`）。
+    md = Path(args.md).resolve()
+    pdf = Path(args.pdf).resolve()
     if not md.is_file():
         raise SystemExit(f"× 找不到 Markdown: {md}")
     if not shutil.which("pandoc"):
@@ -104,6 +106,9 @@ def main() -> int:
             [
                 "pandoc", str(md),
                 "--standalone", "--embed-resources",
+                # 让文档里的相对图片路径按「Markdown 所在目录」解析
+                # （这样 .md 在 GitHub 上能正常显示图片，生成的 PDF 也能嵌入）
+                f"--resource-path={md.parent}",
                 f"--metadata=title:{md.stem}",
                 f"--css={css}",
                 "-o", str(html),

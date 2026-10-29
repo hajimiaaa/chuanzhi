@@ -86,7 +86,8 @@ backend/tests/  单测（约束引擎 + 接口 + 流式），cd backend && pytes
 frontend/src/   api / state / hooks / lib / components，cd frontend && npm run dev
 data/           结构化数据：majors-*.json（专业目录）、rules/（转专业规则）、programs/（培养方案）
 tools/          留痕导出、官方文件转换、培养方案自检
-docs/           备赛手册、用户调研、校方文件分析、开发日志、Prompt 链路记录
+docs/           备赛手册、用户调研、校方文件分析、开发日志、Prompt 链路记录、
+                作品介绍（提交用，含作品图片/）
 docs/调研原始材料/  调研的原始证据（访谈记录、二手资料、校方文件原件）
                     ⚠️ 社区帖截图含第三方昵称，为保护隐私不入库（内容已逐字摘录）
 ```
