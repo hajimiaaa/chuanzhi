@@ -229,6 +229,27 @@ describe('已修成绩单', () => {
     expect(planSignature(withTranscript.current)).not.toBe(planSignature(base.current))
   })
 
+  it('恢复样例规划保留成绩单 —— 它不属于排课板', () => {
+    const state = run(
+      createHistory('p1'),
+      { type: 'ADD_COURSE', courseCode: 'CS101', term: 4 },
+      { type: 'UPSERT_COMPLETED', completed: done('CS105') },
+    )
+    const reset = planReducer(state, { type: 'RESET_TO_SAMPLE' })
+
+    expect(reset.current.items).toEqual([])
+    expect(reset.current.completed.map((c) => c.course_code)).toEqual(['CS105'])
+  })
+
+  it('只有成绩单变化时，「恢复样例规划」不该亮起来', () => {
+    const state = run(createHistory('p1'), {
+      type: 'UPSERT_COMPLETED',
+      completed: done('CS101'),
+    })
+
+    expect(isDirty(state)).toBe(false)
+  })
+
   it('撤销能把成绩单改回去', () => {
     const state = run(createHistory('p1'), { type: 'UPSERT_COMPLETED', completed: done('CS101') })
     const undone = planReducer(state, { type: 'UNDO' })

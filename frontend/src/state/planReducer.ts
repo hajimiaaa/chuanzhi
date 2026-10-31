@@ -60,6 +60,15 @@ export function sortCompleted(completed: CompletedCourse[]): CompletedCourse[] {
   return [...completed].sort((a, b) => a.course_code.localeCompare(b.course_code))
 }
 
+/**
+ * 只比较「排课」的签名。
+ * 成绩单变化不该让「恢复样例规划」亮起来 —— 那个按钮不负责那份数据。
+ */
+export const itemsSignature = (plan: PlanState) =>
+  sortItems(plan.items)
+    .map((i) => `${i.term}:${i.course_code}`)
+    .join(',')
+
 export function planSignature(plan: PlanState): string {
   const items = sortItems(plan.items).map((i) => `${i.term}:${i.course_code}`)
   const done = [...plan.completed]
@@ -167,8 +176,11 @@ export function planReducer(state: PlanHistory, action: PlanAction): PlanHistory
     }
 
     case 'RESET_TO_SAMPLE': {
-      if (planSignature(state.current) === planSignature(state.baseline)) return state
-      return commit(state, state.baseline, 'sample')
+      // 只把**排课**恢复到基线，成绩单原样保留 —— 与 CLEAR 同一条理由：
+      // 「恢复样例规划」是排课板上的操作，不该顺手删掉用户录入的已修课程。
+      const next = { ...state.baseline, completed: state.current.completed }
+      if (itemsSignature(state.current) === itemsSignature(next)) return state
+      return commit(state, next, 'sample')
     }
 
     case 'CLEAR': {
@@ -185,5 +197,6 @@ export function planReducer(state: PlanHistory, action: PlanAction): PlanHistory
 
 export const canUndo = (state: PlanHistory) => state.past.length > 0
 export const canRedo = (state: PlanHistory) => state.future.length > 0
+
 export const isDirty = (state: PlanHistory) =>
-  planSignature(state.current) !== planSignature(state.baseline)
+  itemsSignature(state.current) !== itemsSignature(state.baseline)
