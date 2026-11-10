@@ -5,8 +5,17 @@
  * 挂进来会让每次冲突变化都重渲染整棵树。
  */
 
-import { createContext, useContext, useMemo, useReducer, type Dispatch, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  type Dispatch,
+  type ReactNode,
+} from 'react'
 
+import { savePlan } from '@/lib/planStorage'
 import {
   canRedo as canRedoFn,
   canUndo as canUndoFn,
@@ -30,6 +39,15 @@ const PlanContext = createContext<PlanContextValue | null>(null)
 
 export function PlanProvider({ programId, children }: { programId: string; children: ReactNode }) {
   const [history, dispatch] = useReducer(planReducer, programId, createHistory)
+
+  // 每次变更都落盘：刷新页面不丢排课与成绩单。读写失败静默跳过，不影响使用。
+  // ⚠️ 空规划不落盘：PlanProvider 挂载时样例方案还没加载，此时写盘会把"空"存成
+  //    存档，随后恢复逻辑又拿它盖掉样例——表现为打开就是空板子。
+  useEffect(() => {
+    const { items, completed } = history.current
+    if (items.length === 0 && completed.length === 0) return
+    savePlan(history.current)
+  }, [history.current])
 
   const value = useMemo<PlanContextValue>(
     () => ({

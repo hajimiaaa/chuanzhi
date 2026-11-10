@@ -13,6 +13,7 @@ import type { Conflict, MajorsDoc, PlanIn, ProgramSummary } from '@/api/types'
 import { AppShell, type AppView } from '@/components/AppShell'
 import { BackendBanner } from '@/components/BackendBanner'
 import { ConflictPanel, type FocusState } from '@/components/ConflictPanel'
+import { CoveragePanel } from '@/components/CoveragePanel'
 import { CreditGapView } from '@/components/CreditGapView'
 import { CreditMeters } from '@/components/CreditMeters'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -25,6 +26,7 @@ import { useHealth } from '@/hooks/useHealth'
 import { useProgram } from '@/hooks/useProgram'
 import { useValidation } from '@/hooks/useValidation'
 import { computeCredits, courseIndex, unplacedCourses } from '@/lib/derive'
+import { loadPlan } from '@/lib/planStorage'
 import { PlanProvider, usePlan } from '@/state/PlanContext'
 import { sortItems } from '@/state/planReducer'
 
@@ -137,6 +139,13 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
       origin: 'sample',
       asBaseline: true,
     })
+
+    // 本地存档：放在基线之后恢复，所以「恢复样例规划」仍然回到后端算出的可行解，
+    // 而不是回到上次退出时的状态。
+    const saved = loadPlan(program.id)
+    if (saved && (saved.items.length > 0 || saved.completed.length > 0)) {
+      dispatch({ type: 'REPLACE_PLAN', plan: saved, origin: 'manual' })
+    }
   }, [program, samplePlan, dispatch])
 
   const conflicts = validation.result?.conflicts ?? []
@@ -405,6 +414,8 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
               />
             </Suspense>
           </section>
+
+          <CoveragePanel majors={majors} programs={programs} />
 
           <MajorPicker
             doc={majors}

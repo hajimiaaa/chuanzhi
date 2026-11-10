@@ -1655,3 +1655,82 @@
     page-break-inside: avoid;
   }
 }
+
+/* ---------- 数据覆盖度 ---------- */
+
+.coverage__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.coverage__row {
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.coverage__row:first-child {
+  border-top: 0;
+}
+
+.coverage__status {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.coverage__status--ok {
+  color: #0a6b0a;
+  border-color: var(--status-good);
+  background: #eaf6ea;
+}
+
+.coverage__status--partial {
+  color: #7a5200;
+  border-color: var(--status-warning);
+  background: #fdf4e0;
+}
+
+.coverage__status--missing {
+  color: #7a1f1f;
+  border-color: var(--status-critical);
+  background: #fdf1f1;
+}
+
+.coverage__label {
+  font-size: 12px;
+}
+
+.coverage__value {
+  text-align: right;
+}
+
+.coverage__note {
+  margin: 8px 0 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .coverage__status--ok {
+    color: #a8e6a8;
+    background: #14260f;
+  }
+
+  .coverage__status--partial {
+    color: #e8cf9a;
+    background: #2a2312;
+  }
+
+  .coverage__status--missing {
+    color: #f0c9c9;
+    background: #2a1717;
+  }
+}
