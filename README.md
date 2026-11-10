@@ -148,7 +148,7 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   │   ├── sse.py           SSE 帧格式与响应头（纯标准库）
 │   │   ├── schemas.py       API 请求模型（Pydantic 只出现在这一层与 main.py）
 │   │   └── main.py          FastAPI 入口
-│   ├── tests/               约束引擎、接口、流式、规则与补修单测（150 项）
+│   ├── tests/               约束引擎、接口、流式、规则与补修单测（159 项）
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── frontend/                React 前端
@@ -183,7 +183,7 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   ├── 开发日志.md           每轮迭代的人工复盘
 │   ├── 技术文档.md           意图控制策略、架构决策、可复现性论证
 │   ├── 技术文档.pdf          提交用 PDF（18 页，由 tools/build_tech_pdf.py 生成）
-│   └── 作品介绍.pdf          提交用 PDF（9 页，含作品图片）
+│   └── 作品介绍.pdf          提交用 PDF（10 页，含作品图片）
 ├── .env.example
 └── .gitignore
 ```
