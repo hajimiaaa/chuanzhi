@@ -24,10 +24,16 @@
 依赖: 仅标准库 + app.models
 """
 
+import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
 from app.models import PlanItem, Program
+
+# 课程名归一化时去掉的字符：空白、全/半角标点、括号本身。
+# **不去掉括号里的内容** —— 「高等数学A(一)」和「高等数学A(二)」必须保持可区分。
+_NAME_NOISE = re.compile(r"[\s·．.。,，、;；:：!！?？\"'“”‘’()（）\[\]【】_\-—]+")
 
 
 @dataclass(frozen=True)
@@ -73,17 +79,22 @@ class CreditCase:
 
 @dataclass(frozen=True)
 class CreditAnalysis:
-    """四类清单 + 补修顺序。
+    """五类清单 + 补修顺序。
 
-    刻意把四类分开返回，而不是合成一个"还需要修 N 门"的数字：
-    四类对学生意味着四种不同的动作（不用管 / 重修 / 补修 / 去问教务处），
+    刻意分开返回，而不是合成一个"还需要修 N 门"的数字：
+    每一类对学生意味着不同的动作（不用管 / 去教务处确认 / 重修 / 补修 / 去问），
     合并掉任何一类都会变成误导。
+
+    `possible_overlap` 是**置信度中**的一类：课名与学分都对得上、但课号不同。
+    我们不判断它"能不能折抵"——那需要学校的认定办法——只把它单独列出来，
+    动作是"带成绩单去教务处确认"。
     """
 
-    recognized: tuple[CreditCase, ...] = ()   # 在目标方案中且已通过
-    retake: tuple[CreditCase, ...] = ()       # 在目标方案中但未通过
-    remedial: tuple[CreditCase, ...] = ()     # 目标方案要求但未修读
-    pending: tuple[CreditCase, ...] = ()      # 已修但不在目标方案课程库 —— 需认定办法
+    recognized: tuple[CreditCase, ...] = ()        # 课号相同且已通过（高置信）
+    retake: tuple[CreditCase, ...] = ()            # 课号相同但未通过（高置信）
+    possible_overlap: tuple[CreditCase, ...] = ()  # 同名同学分、课号不同（中置信，需确认）
+    remedial: tuple[CreditCase, ...] = ()          # 目标方案要求、成绩单里对不上（高置信）
+    pending: tuple[CreditCase, ...] = ()           # 成绩单里的原专业课程（低置信，不在本方案）
     suggested: PlanSuggestion = PlanSuggestion()
     notes: tuple[str, ...] = ()
     program_credits: float = 0.0
@@ -93,10 +104,12 @@ class CreditAnalysis:
         return {
             "recognized": len(self.recognized),
             "retake": len(self.retake),
+            "possible_overlap": len(self.possible_overlap),
             "remedial": len(self.remedial),
             "pending": len(self.pending),
             "recognized_credits": round(sum(c.credits for c in self.recognized), 1),
             "retake_credits": round(sum(c.credits for c in self.retake), 1),
+            "possible_overlap_credits": round(sum(c.credits for c in self.possible_overlap), 1),
             "remedial_credits": round(sum(c.credits for c in self.remedial), 1),
             "pending_credits": round(sum(c.credits for c in self.pending), 1),
             "program_credits": round(self.program_credits, 1),
@@ -108,6 +121,7 @@ class CreditAnalysis:
             "summary": self.summary(),
             "recognized": [c.to_dict() for c in self.recognized],
             "retake": [c.to_dict() for c in self.retake],
+            "possible_overlap": [c.to_dict() for c in self.possible_overlap],
             "remedial": [c.to_dict() for c in self.remedial],
             "pending": [c.to_dict() for c in self.pending],
             "suggested": self.suggested.to_dict(),
@@ -115,12 +129,42 @@ class CreditAnalysis:
         }
 
 
-def analyze_credits(program: Program, completed=()) -> CreditAnalysis:
-    """把成绩单与目标培养方案对照，分成四类。
+def normalize_course_name(name: str) -> str:
+    """课程名归一化：全角转半角、去空白与标点、小写。
 
-    **不做的判断**：原专业的某门课能不能顶替目标专业的某门课。
-    那需要《学分认定管理办法》，各校标准完全不同（有的给换算式，有的要求
-    「课程目标对毕业要求的支撑等效」），我们不臆测——统一归入 `pending`。
+    只做**确定性的字符归一化**，不做任何语义猜测（不去「(一)」这类序号，
+    也不做同义词替换）——它的唯一用途是「同一门课在不同专业里写法略有差异」的匹配。
+    """
+    text = unicodedata.normalize("NFKC", name or "")
+    return _NAME_NOISE.sub("", text).lower()
+
+
+def _case_from_course(course, grade=None) -> CreditCase:
+    return CreditCase(
+        course_code=course.code,
+        name=course.name,
+        credits=course.credits,
+        category=course.category,
+        grade=grade,
+        terms=course.terms,
+        prerequisites=course.prerequisites,
+    )
+
+
+def analyze_credits(program: Program, completed=()) -> CreditAnalysis:
+    """把成绩单与目标培养方案对照，分成五类。
+
+    匹配分两遍，顺序不能反：
+      1. **课号相同** —— 高置信，直接归入 已认定 / 需重修；
+      2. **课名 + 学分都相同、但课号不同** —— 中置信，归入「可能可折抵」。
+         这一层解决的是跨专业转学：公共课（高数、英语、体育、思政）在原专业
+         往往有另一套课号，只按课号匹配会把它们全部误判成「需补修」。
+
+    **仍然不做的判断**：这些同名课到底能不能折抵。那需要学校的《学分认定管理办法》，
+    我们只把它们单独列出来，动作是「带成绩单去教务处确认」，不并进已认定。
+
+    学分守恒：`recognized + retake + possible_overlap + remedial` 的学分之和
+    恒等于培养方案总学分（`pending` 是成绩单里不属于本方案的课，单独统计、不参与守恒）。
     """
     by_code = program.by_code()
 
@@ -136,43 +180,50 @@ def analyze_credits(program: Program, completed=()) -> CreditAnalysis:
         if item.passed and not best[code].passed:
             best[code] = item
 
-    recognized, retake, pending = [], [], []
-    for code in sorted(best):
-        item = best[code]
+    # 课名索引：同一个名字出现多次时取第一门（课程顺序稳定，结果确定）
+    name_index = {}
+    for course in program.courses:
+        key = normalize_course_name(course.name)
+        if key and key not in name_index:
+            name_index[key] = course
+
+    recognized, retake, possible_overlap, pending = [], [], [], []
+    matched_codes = set()  # 已被某个成绩单条目录用掉的方案课程
+
+    entries = [(code, best[code]) for code in sorted(best)]
+
+    # 第一遍：课号完全相同
+    for code, item in entries:
         course = by_code.get(code)
         if course is None:
-            # 只在成绩单里出现、目标方案没有：原专业课程，只能待认定
-            pending.append(
-                CreditCase(
-                    course_code=code,
-                    name="",
-                    credits=item.credits,
-                    grade=item.grade,
-                )
-            )
             continue
-        case = CreditCase(
-            course_code=code,
-            name=course.name,
-            credits=course.credits,
-            category=course.category,
-            grade=item.grade,
-            terms=course.terms,
-            prerequisites=course.prerequisites,
+        matched_codes.add(code)
+        (recognized if item.passed else retake).append(_case_from_course(course, item.grade))
+
+    # 第二遍：课号对不上，尝试「同名 + 同学分」
+    for code, item in entries:
+        if code in by_code:
+            continue
+        twin = name_index.get(normalize_course_name(item.name)) if item.name else None
+        same_credits = twin is not None and abs(twin.credits - item.credits) < 1e-6
+        if twin is not None and same_credits and twin.code not in matched_codes:
+            matched_codes.add(twin.code)
+            possible_overlap.append(_case_from_course(twin, item.grade))
+            continue
+        # 对不上：原专业独有课程，只能待认定
+        pending.append(
+            CreditCase(
+                course_code=code,
+                name=item.name,
+                credits=item.credits,
+                grade=item.grade,
+            )
         )
-        (recognized if item.passed else retake).append(case)
 
     remedial = [
-        CreditCase(
-            course_code=course.code,
-            name=course.name,
-            credits=course.credits,
-            category=course.category,
-            terms=course.terms,
-            prerequisites=course.prerequisites,
-        )
+        _case_from_course(course)
         for course in sorted(
-            (c for code, c in by_code.items() if code not in best),
+            (c for code, c in by_code.items() if code not in matched_codes),
             key=lambda c: (c.terms[0] if c.terms else 99, c.code),
         )
     ]
@@ -183,18 +234,24 @@ def analyze_credits(program: Program, completed=()) -> CreditAnalysis:
             f"成绩单里有 {len(duplicates)} 门课程重复出现，已按「任一条通过即视为通过」合并"
         )
     if remedial:
-        notes.append(f"{len(remedial)} 门课程尚未修读，需要补修")
+        notes.append(f"{len(remedial)} 门课程在成绩单里对不上，需要补修")
+    if possible_overlap:
+        notes.append(
+            f"{len(possible_overlap)} 门课程与原专业同名同学分、但课号不同，"
+            "记为「可能可折抵」，需带成绩单到教务处认定"
+        )
     if retake:
         notes.append(f"{len(retake)} 门课程已修未通过，需要重修")
     if pending:
         notes.append(
-            f"{len(pending)} 门已修课程不在本培养方案课程库中，能否折抵需《学分认定管理办法》，"
+            f"{len(pending)} 门已修课程不在本培养方案课程库中，且无同名同学分的对应课，"
             "当前记为「待认定」"
         )
 
     return CreditAnalysis(
         recognized=tuple(recognized),
         retake=tuple(retake),
+        possible_overlap=tuple(possible_overlap),
         remedial=tuple(remedial),
         pending=tuple(pending),
         suggested=plan_completion_order(program, completed=tuple(best.values())),

@@ -99,6 +99,8 @@ export interface PlanItem {
 
 export interface CompletedCourse {
   course_code: string
+  /** 课程名称（可选）：跨专业「同名同学分、课号不同」的课要靠它识别成「可能可折抵」 */
+  name: string
   credits: number
   grade: number | string | null
   term: string
@@ -334,10 +336,12 @@ export interface CreditCase {
 export interface CreditGapSummary {
   recognized: number
   retake: number
+  possible_overlap: number
   remedial: number
   pending: number
   recognized_credits: number
   retake_credits: number
+  possible_overlap_credits: number
   remedial_credits: number
   pending_credits: number
   program_credits: number
@@ -355,6 +359,7 @@ export interface CreditGapResponse {
   summary: CreditGapSummary
   recognized: CreditCase[]
   retake: CreditCase[]
+  possible_overlap: CreditCase[]
   remedial: CreditCase[]
   pending: CreditCase[]
   suggested: PlanSuggestion

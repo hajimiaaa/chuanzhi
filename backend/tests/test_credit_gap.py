@@ -161,10 +161,110 @@ def test_summary_counts_and_credits(program):
 
     assert summary["recognized"] == 1
     assert summary["retake"] == 1
+    assert summary["possible_overlap"] == 0
     assert summary["recognized_credits"] == 5.0
     assert summary["retake_credits"] == 4.0
+    assert summary["possible_overlap_credits"] == 0.0
     assert summary["program_credits"] == 18.0
     assert summary["total_min_credits"] == 18.0
+
+
+# ---------- 同名不同课号：可能可折抵 ----------
+
+
+def test_same_name_same_credits_different_code_is_overlap(program):
+    """跨专业公共课：课号不同、课名与学分相同 → 单独成类，不并进补修。"""
+    analysis = analyze_credits(
+        program,
+        completed=[completed("OLD-MA101", credits=5, grade=88, name="高等数学")],
+    )
+
+    assert codes(analysis.possible_overlap) == ["CS101"]
+    assert "CS101" not in codes(analysis.remedial)
+    assert analysis.pending == ()
+
+
+def test_same_name_different_credits_stays_pending(program):
+    """学分对不上就不算「可能可折抵」——宁可保守，也不把 4 学分说成 5 学分。"""
+    analysis = analyze_credits(
+        program,
+        completed=[completed("OLD-MA101", credits=4, grade=88, name="高等数学")],
+    )
+
+    assert analysis.possible_overlap == ()
+    assert codes(analysis.pending) == ["OLD-MA101"]
+    assert "CS101" in codes(analysis.remedial)
+
+
+def test_name_matching_is_normalized(program):
+    """全角/半角括号、空格差异不该影响匹配。"""
+    analysis = analyze_credits(
+        program,
+        completed=[completed("OLD-1", credits=2, grade=80, name=" 通识 A ")],
+    )
+
+    assert codes(analysis.possible_overlap) == ["GE101"]
+
+
+def test_overlap_does_not_double_count(program):
+    """同一门方案课不能被两条成绩单同时占用。"""
+    analysis = analyze_credits(
+        program,
+        completed=[
+            completed("OLD-1", credits=3, grade=80, name="算法设计"),
+            completed("OLD-2", credits=3, grade=70, name="算法设计"),
+        ],
+    )
+
+    overlap_codes = codes(analysis.possible_overlap)
+    assert overlap_codes == ["CS103"]
+    assert "CS103" not in codes(analysis.remedial)
+
+
+def test_credit_conservation_across_buckets(program):
+    """学分守恒：四类（不含 pending）的学分之和 == 培养方案总学分。"""
+    analysis = analyze_credits(
+        program,
+        completed=[
+            completed("CS101", grade=90),
+            completed("CS102", grade=50),
+            completed("OLD-1", credits=3, grade=80, name="算法设计"),
+            completed("X1", credits=2, grade=70, name="原专业独有课"),
+        ],
+    )
+
+    counted = (
+        analysis.recognized
+        + analysis.retake
+        + analysis.possible_overlap
+        + analysis.remedial
+    )
+    assert round(sum(c.credits for c in counted), 1) == round(
+        sum(c.credits for c in program.courses), 1
+    )
+    # pending 不参与守恒，单独统计
+    assert codes(analysis.pending) == ["X1"]
+
+
+def test_every_program_course_lands_in_exactly_one_bucket(program):
+    analysis = analyze_credits(
+        program,
+        completed=[
+            completed("CS101", grade=90),
+            completed("OLD-1", credits=4, grade=80, name="数据结构"),
+            completed("X1", credits=2, grade=70, name="原专业独有课"),
+        ],
+    )
+
+    counted = (
+        analysis.recognized
+        + analysis.retake
+        + analysis.possible_overlap
+        + analysis.remedial
+    )
+    landed = [c.course_code for c in counted]
+    assert len(landed) == len(set(landed)) == len(program.courses)
+    assert set(landed) == set(program.by_code())
 
 
 # ---------- HTTP 层 ----------
@@ -190,6 +290,7 @@ def test_endpoint_shape_is_stable(client):
         "summary",
         "recognized",
         "retake",
+        "possible_overlap",
         "remedial",
         "pending",
         "suggested",
@@ -198,10 +299,12 @@ def test_endpoint_shape_is_stable(client):
     assert set(body["summary"]) == {
         "recognized",
         "retake",
+        "possible_overlap",
         "remedial",
         "pending",
         "recognized_credits",
         "retake_credits",
+        "possible_overlap_credits",
         "remedial_credits",
         "pending_credits",
         "program_credits",

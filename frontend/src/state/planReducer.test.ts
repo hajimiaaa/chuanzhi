@@ -161,6 +161,7 @@ describe('planReducer', () => {
 describe('已修成绩单', () => {
   const done = (code: string, credits = 3, grade = 90, passed = true) => ({
     course_code: code,
+    name: '',
     credits,
     grade,
     term: '',

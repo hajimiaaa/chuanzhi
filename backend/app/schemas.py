@@ -38,6 +38,9 @@ class CompletedCourseIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     course_code: str
+    # 课程名称可选：填了之后，跨专业「同名 + 同学分、课号不同」的课才能被识别成
+    # 「可能可折抵」；不填则只按课号匹配。
+    name: str = ""
     credits: float = 0
     grade: float | str | None = None
     term: str = ""

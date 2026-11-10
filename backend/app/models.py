@@ -721,6 +721,9 @@ class CompletedCourse:
     grade: Any = None
     term: str = ""
     passed: bool = None  # type: ignore[assignment]
+    # 课程名称：跨专业转学时，原专业与目标专业的同一门公共课往往课号不同，
+    # 只能靠「同名 + 同学分」识别成「可能可折抵」。留空则只按课号匹配。
+    name: str = ""
 
     def __post_init__(self):
         if self.passed is None:
@@ -739,11 +742,13 @@ class CompletedCourse:
             grade=d.get("grade"),
             term=str(d.get("term") or ""),
             passed=None if passed is None else bool(passed),
+            name=str(d.get("name") or "").strip(),
         )
 
     def to_dict(self) -> dict:
         return {
             "course_code": self.course_code,
+            "name": self.name,
             "credits": self.credits,
             "grade": self.grade,
             "term": self.term,

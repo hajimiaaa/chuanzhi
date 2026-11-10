@@ -76,8 +76,15 @@ def make_plan(items=(), completed=(), program_id="p1"):
     )
 
 
-def completed(code, credits=3, grade=90, term="2024-2025-1", passed=None):
-    return CompletedCourse(course_code=code, credits=credits, grade=grade, term=term, passed=passed)
+def completed(code, credits=3, grade=90, term="2024-2025-1", passed=None, name=""):
+    return CompletedCourse(
+        course_code=code,
+        credits=credits,
+        grade=grade,
+        term=term,
+        passed=passed,
+        name=name,
+    )
 
 
 # ---------- 基准夹具 ----------

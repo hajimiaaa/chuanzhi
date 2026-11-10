@@ -46,7 +46,8 @@ export function CreditGapView({ program }: Props) {
             )}
           </div>
           <p className="small secondary" style={{ margin: 0 }}>
-            转专业后还需要修什么 —— 按课程号比对，<strong>不含跨专业学分折抵</strong>。
+            转专业后还需要修什么 —— 按<strong>课程号 + 课名</strong>比对；
+            <strong>跨专业折抵不替你判断</strong>，只把需要确认的课单独列出来。
           </p>
         </header>
 
@@ -127,6 +128,11 @@ function Results({ data, stale, error }: ResultsProps) {
             hint={`${summary.retake_credits} 学分`}
             tone="warn"
           />
+          <Tile
+            value={summary.possible_overlap}
+            label="可能可折抵"
+            hint={`${summary.possible_overlap_credits} 学分 · 需确认`}
+          />
           <Tile value={summary.pending} label="待认定" hint={`${summary.pending_credits} 学分`} />
           <Tile
             value={summary.recognized}
@@ -136,7 +142,8 @@ function Results({ data, stale, error }: ResultsProps) {
           />
         </div>
         <p className="muted tiny gapview__note">
-          培养方案共 {summary.program_credits} 学分；本页只统计课程号能对上的部分。
+          培养方案共 {summary.program_credits} 学分。前四类（不含「待认定」）合计严格等于培养方案总学分，
+          不存在重复计算。
         </p>
       </section>
 
@@ -153,11 +160,18 @@ function Results({ data, stale, error }: ResultsProps) {
         empty="没有需要重修的课程。"
       />
       <CaseSection
+        title="可能可折抵"
+        hint="同名、同学分，但课号不同"
+        cases={data.possible_overlap}
+        empty="没有需要确认的同名课程。"
+        note="这类课大概率就是你修过的那门公共课，但「能不能顶」由学校认定。带成绩单到教务处按《学分认定管理办法》确认，确认前不要当成已修。"
+      />
+      <CaseSection
         title="待认定"
-        hint="原专业课程，不在本培养方案课程库"
+        hint="原专业独有课程，本方案没有对应"
         cases={data.pending}
         empty="没有待认定的课程。"
-        note="能不能折抵取决于《学分认定管理办法》，我们还没拿到这份文件，所以不猜。"
+        note="它们既不在本培养方案课程库里，也没有同名同学分的对应课，只能由学院/教务处判断能否计入。"
       />
       <CaseSection
         title="已认定"
@@ -299,6 +313,7 @@ interface EditorProps {
 
 function TranscriptEditor({ completed, onAdd, onRemove, onSample, onClear }: EditorProps) {
   const [code, setCode] = useState('')
+  const [courseName, setCourseName] = useState('')
   const [credits, setCredits] = useState('3')
   const [grade, setGrade] = useState('')
   const [formError, setFormError] = useState('')
@@ -315,8 +330,16 @@ function TranscriptEditor({ completed, onAdd, onRemove, onSample, onClear }: Edi
       return setFormError('成绩必须是 0–100 的数字')
     }
 
-    onAdd(makeCompleted({ course_code: courseCode, credits: creditValue, grade: gradeValue }))
+    onAdd(
+      makeCompleted({
+        course_code: courseCode,
+        name: courseName,
+        credits: creditValue,
+        grade: gradeValue,
+      }),
+    )
     setCode('')
+    setCourseName('')
     setGrade('')
     setFormError('')
   }
@@ -330,11 +353,18 @@ function TranscriptEditor({ completed, onAdd, onRemove, onSample, onClear }: Edi
 
       <form className="transcript__form" onSubmit={submit}>
         <input
-          className="picker__search transcript__input"
+          className="picker__search transcript__input transcript__input--wide"
           placeholder="课程代码"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           aria-label="课程代码"
+        />
+        <input
+          className="picker__search transcript__input transcript__input--wide"
+          placeholder="课程名称（可选，跨专业同名课要靠它识别）"
+          value={courseName}
+          onChange={(e) => setCourseName(e.target.value)}
+          aria-label="课程名称"
         />
         <input
           className="picker__search transcript__input"
@@ -377,7 +407,8 @@ function TranscriptEditor({ completed, onAdd, onRemove, onSample, onClear }: Edi
           {completed.map((item) => (
             <li key={item.course_code} className="transcript__item">
               <span className="case__code tabular">{item.course_code}</span>
-              <span className="muted tiny">
+              <span className="muted tiny transcript__item-text">
+                {item.name ? `${item.name} · ` : ''}
                 {item.credits} 学分 · {item.grade ?? '—'} 分
               </span>
               <span className="shell__spacer" />
@@ -403,15 +434,19 @@ function PolicyNote() {
   return (
     <section className="panel">
       <div className="panel__head">
-        <h2 className="panel__title">关于「待认定」</h2>
+        <h2 className="panel__title">怎么读这五类</h2>
       </div>
       <p className="small secondary" style={{ margin: 0 }}>
-        原专业的课程能不能顶替目标专业的课程，取决于学校的《学分认定管理办法》。
-        这份文件我们还没拿到，而且各校标准完全不同——有的给换算式
-        （周学时 × 周数 ÷ 16），有的要求「课程目标对毕业要求的支撑等效」。
+        <strong>已认定 / 需重修 / 需补修</strong>：课程号完全对得上，结论可以直接采信。
+        <br />
+        <strong>可能可折抵</strong>：课名和学分都对得上、但课号不同——大概率是你修过的公共课，
+        能不能顶要由教务处认定，<strong>确认前不要当成已修</strong>。
+        <br />
+        <strong>待认定</strong>：原专业独有课程，本方案没有对应，只能由学院判断能否计入。
       </p>
       <p className="muted tiny gapview__note">
-        所以这一类只标「待认定」，不猜。课程号能直接对上的部分（公共课、同名课）不受影响，照常计算。
+        跨专业折抵的判定标准各校完全不同——有的给换算式（周学时 × 周数 ÷ 16），
+        有的要求「课程目标对毕业要求的支撑等效」。我们不做这个判断，只把需要确认的课挑出来。
       </p>
     </section>
   )
