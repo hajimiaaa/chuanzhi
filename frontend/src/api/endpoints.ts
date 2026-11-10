@@ -6,6 +6,7 @@
 
 import { getJson, postJson, type RequestOptions } from './client'
 import type {
+  AuditSheetResponse,
   CreditGapIn,
   CreditGapResponse,
   ExplainResponse,
@@ -53,6 +54,10 @@ export const explainPlan = (body: PlanIn, options?: RequestOptions) =>
 /** 补修/重修清单。不做跨专业折抵——`pending` 里的课只能标「待认定」。 */
 export const creditGap = (body: CreditGapIn, options?: RequestOptions) =>
   postJson<CreditGapResponse>('/api/plan/credit-gap', body, options)
+
+/** 可打印核对单：五类清单 + 自检 + 签字栏。样例数据下 `printable` 为 false。 */
+export const auditSheet = (body: CreditGapIn, options?: RequestOptions) =>
+  postJson<AuditSheetResponse>('/api/plan/audit-sheet', body, options)
 
 export const getRules = (options?: RequestOptions) =>
   getJson<RuleListResponse>('/api/rules', options)

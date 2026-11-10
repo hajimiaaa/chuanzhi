@@ -14,6 +14,8 @@
 时序问题。数据在请求时惰性加载，行为在任何入口下都一致。
 """
 
+from datetime import datetime
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -193,6 +195,100 @@ def credit_gap(body: CreditGapIn):
         "program_id": program.id,
         "data_status": program.data_status,
         **analyze_credits(program, completed).to_dict(),
+    }
+
+
+@app.post("/api/plan/audit-sheet", summary="生成可打印核对的清单（核对草案）", tags=["规划"])
+def audit_sheet(body: CreditGapIn):
+    """把五类清单组织成一份**可打印、可签字**的核对草案。
+
+    这是对「功能不完善导致学生没拿到学分怎么办」的产品级回答：
+    输出的不是"最终结论"，而是一份写明**哪几条确定、哪几条需要人去确认**的单子。
+
+    `printable` 在样例数据下为 false —— 不让编造数据生成一张"看起来能签字"的单子。
+    最终认定始终以教务系统与教务处审核结果为准。
+    """
+    program = _get_program(body.program_id)
+    completed = tuple(
+        CompletedCourse.from_dict(item, "已修课程")
+        for item in body.model_dump()["completed"]
+    )
+    analysis = analyze_credits(program, completed)
+    summary = analysis.summary()
+
+    raw_sections = [
+        ("recognized", "已认定", "high", "无需操作；与教务系统不一致时，以教务系统为准", analysis.recognized),
+        ("retake", "需重修", "high", "按培养方案重修，成绩以教务系统为准", analysis.retake),
+        ("possible_overlap", "可能可折抵", "medium",
+         "带成绩单到教务处确认，依据《学分认定管理办法》", analysis.possible_overlap),
+        ("remedial", "需补修", "high", "按转入专业培养方案选课", analysis.remedial),
+        ("pending", "待认定", "low", "由学院/教务处判断能否计入，不计入本单的学分守恒", analysis.pending),
+    ]
+    sections = [
+        {
+            "key": key,
+            "title": title,
+            "confidence": confidence,
+            "action": action,
+            "cases": [case.to_dict() for case in cases],
+        }
+        for key, title, confidence, action, cases in raw_sections
+    ]
+
+    counted = (
+        analysis.recognized
+        + analysis.retake
+        + analysis.possible_overlap
+        + analysis.remedial
+    )
+    landed = [case.course_code for case in counted]
+    total = round(sum(c.credits for c in program.courses), 1)
+    got = round(sum(c.credits for c in counted), 1)
+
+    self_check = [
+        {
+            "name": "课程无遗漏",
+            "passed": len(landed) == len(set(landed)) == len(program.courses),
+            "detail": f"{len(set(landed))}/{len(program.courses)} 门培养方案课程已归类，无重复",
+        },
+        {
+            "name": "学分守恒",
+            "passed": got == total,
+            "detail": (
+                f"{total} = {summary['recognized_credits']} + {summary['retake_credits']}"
+                f" + {summary['possible_overlap_credits']} + {summary['remedial_credits']}"
+            ),
+        },
+    ]
+
+    sample = program.data_status != "official"
+    return {
+        "program": {
+            "id": program.id,
+            "name": program.name,
+            "college": program.college,
+            "data_status": program.data_status,
+            "catalog_ref": program.catalog_ref,
+            "note": program.note,
+        },
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "engine_version": __version__,
+        "summary": summary,
+        "sections": sections,
+        "self_check": self_check,
+        "disclaimer": (
+            "本清单由课径基于公开培养方案自动核算，是一份**核对草案**，仅供参考；"
+            "最终认定以学校教务系统与教务处审核结果为准。"
+            + ("当前为样例数据，不可用于真实毕业审核。" if sample else "")
+        ),
+        "next_actions": [
+            {"step": 1, "text": "登录教务系统，逐条核对课程号、学分与成绩",
+             "where": "教务系统 → 培养方案 / 成绩查询"},
+            {"step": 2, "text": "带成绩单到教务处确认「可能可折抵」的课程",
+             "where": "教务处学籍管理科（明理楼 226）"},
+            {"step": 3, "text": "确认后回填本单，交辅导员签字留档", "where": "本学院辅导员"},
+        ],
+        "printable": not sample,
     }
 
 

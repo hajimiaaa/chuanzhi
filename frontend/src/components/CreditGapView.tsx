@@ -11,7 +11,17 @@
 
 import { useState, type FormEvent } from 'react'
 
-import type { CompletedCourse, CreditCase, CreditGapResponse, PlanSuggestion, Program } from '@/api/types'
+import { describeError } from '@/api/client'
+import { auditSheet } from '@/api/endpoints'
+import type {
+  AuditSheetResponse,
+  CompletedCourse,
+  CreditCase,
+  CreditGapResponse,
+  PlanSuggestion,
+  Program,
+} from '@/api/types'
+import { CreditAuditSheet } from '@/components/CreditAuditSheet'
 import { useCreditGap } from '@/hooks/useCreditGap'
 import { SAMPLE_TRANSCRIPT, makeCompleted } from '@/lib/transcript'
 import { usePlan } from '@/state/PlanContext'
@@ -24,6 +34,23 @@ export function CreditGapView({ program }: Props) {
   const { history, dispatch } = usePlan()
   const completed = history.current.completed
   const gap = useCreditGap(program, completed)
+
+  const [sheet, setSheet] = useState<AuditSheetResponse | null>(null)
+  const [sheetLoading, setSheetLoading] = useState(false)
+  const [sheetError, setSheetError] = useState('')
+
+  async function openSheet() {
+    if (!program) return
+    setSheetLoading(true)
+    setSheetError('')
+    try {
+      setSheet(await auditSheet({ program_id: program.id, completed }))
+    } catch (cause: unknown) {
+      setSheetError(describeError(cause))
+    } finally {
+      setSheetLoading(false)
+    }
+  }
 
   return (
     <div className={`shell__body ${gap.loading ? 'rules--loading' : ''}`}>
@@ -49,6 +76,20 @@ export function CreditGapView({ program }: Props) {
             转专业后还需要修什么 —— 按<strong>课程号 + 课名</strong>比对；
             <strong>跨专业折抵不替你判断</strong>，只把需要确认的课单独列出来。
           </p>
+
+          {program && completed.length > 0 && (
+            <div className="gapview__actions">
+              <button
+                className="btn btn--primary tiny"
+                onClick={openSheet}
+                disabled={sheetLoading}
+              >
+                {sheetLoading ? '生成中…' : '生成核对单'}
+              </button>
+              <span className="muted tiny">五类清单 + 自检 + 签字栏，可打印 / 复制为文本</span>
+              {sheetError && <span className="muted tiny">· {sheetError}</span>}
+            </div>
+          )}
         </header>
 
         {!program ? (
@@ -81,6 +122,8 @@ export function CreditGapView({ program }: Props) {
         />
         <PolicyNote />
       </aside>
+
+      {sheet && <CreditAuditSheet data={sheet} onClose={() => setSheet(null)} />}
     </div>
   )
 }

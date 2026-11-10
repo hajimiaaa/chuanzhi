@@ -365,3 +365,49 @@ export interface CreditGapResponse {
   suggested: PlanSuggestion
   notes: string[]
 }
+
+// ---------- 核对单（POST /api/plan/audit-sheet）----------
+
+export type AuditConfidence = 'high' | 'medium' | 'low'
+
+export interface AuditSection {
+  key: string
+  title: string
+  confidence: AuditConfidence
+  action: string
+  cases: CreditCase[]
+}
+
+export interface AuditCheck {
+  name: string
+  passed: boolean
+  detail: string
+}
+
+export interface AuditAction {
+  step: number
+  text: string
+  where: string
+}
+
+export interface AuditSheetProgram {
+  id: string
+  name: string
+  college: string
+  data_status: DataStatus
+  catalog_ref: string
+  note: string
+}
+
+export interface AuditSheetResponse {
+  program: AuditSheetProgram
+  generated_at: string
+  engine_version: string
+  summary: CreditGapSummary
+  sections: AuditSection[]
+  self_check: AuditCheck[]
+  disclaimer: string
+  next_actions: AuditAction[]
+  /** 样例数据下为 false：不生成一张"看起来能签字"的单子 */
+  printable: boolean
+}

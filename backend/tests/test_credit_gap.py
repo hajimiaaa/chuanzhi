@@ -345,3 +345,63 @@ def test_endpoint_rejects_unknown_fields(client):
         json={"program_id": SAMPLE, "completed": [{"courseCode": "CS105"}]},
     )
     assert response.status_code == 422
+
+
+# ---------- 核对单 ----------
+
+
+def test_audit_sheet_shape_and_self_check(client):
+    body = client.post(
+        "/api/plan/audit-sheet",
+        json={
+            "program_id": SAMPLE,
+            "completed": [
+                {"course_code": "CS105", "name": "程序设计基础", "credits": 4, "grade": 90},
+                {"course_code": "SE102", "name": "高等数学A(二)", "credits": 5, "grade": 84},
+                {"course_code": "SE001", "name": "软件工程导论", "credits": 3, "grade": 80},
+            ],
+        },
+    ).json()
+
+    assert set(body) == {
+        "program",
+        "generated_at",
+        "engine_version",
+        "summary",
+        "sections",
+        "self_check",
+        "disclaimer",
+        "next_actions",
+        "printable",
+    }
+    assert [s["key"] for s in body["sections"]] == [
+        "recognized",
+        "retake",
+        "possible_overlap",
+        "remedial",
+        "pending",
+    ]
+    for section in body["sections"]:
+        assert set(section) == {"key", "title", "confidence", "action", "cases"}
+
+    checks = {c["name"]: c for c in body["self_check"]}
+    assert checks["课程无遗漏"]["passed"] is True
+    assert checks["学分守恒"]["passed"] is True
+
+
+def test_audit_sheet_is_not_printable_for_sample_data(client):
+    """样例数据不能生成一张"看起来能签字"的单子。"""
+    body = client.post(
+        "/api/plan/audit-sheet", json={"program_id": SAMPLE, "completed": []}
+    ).json()
+
+    assert body["printable"] is False
+    assert "样例数据" in body["disclaimer"]
+    assert body["next_actions"]
+
+
+def test_audit_sheet_rejects_unknown_program(client):
+    response = client.post(
+        "/api/plan/audit-sheet", json={"program_id": "nope", "completed": []}
+    )
+    assert response.status_code == 404
