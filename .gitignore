@@ -44,3 +44,9 @@ recordings/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ===== 备赛材料（含姓名 / 学校 / 评语截图，绝不入库）=====
+标准/
+ai建议/
+备赛材料/
+*.zip
