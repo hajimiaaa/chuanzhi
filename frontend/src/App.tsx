@@ -154,6 +154,37 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
 
   const focusCodes = useMemo(() => new Set(focus?.courseCodes ?? []), [focus])
 
+  // 成绩单里已通过的课：在板上标灰，避免"培养方案全量"被读成"你还要再修一遍"
+  const passedCodes = useMemo(
+    () =>
+      new Set(
+        history.current.completed.filter((item) => item.passed).map((item) => item.course_code),
+      ),
+    [history.current.completed],
+  )
+
+  // 成绩单已通过的课仍在培养方案的全量布局里，后端会为它们报
+  // 「已修读通过，无需再排入规划」。这不是用户的操作错误，而是两套数据叠加的
+  // 正常结果——界面上过滤掉这层噪声（否则载入成绩单后会一次冒出 17 条警告）。
+  const visibleConflicts = useMemo(
+    () =>
+      conflicts.filter(
+        (item) =>
+          !(item.kind === 'duplicate_course' && passedCodes.has(item.course_codes[0] ?? '')),
+      ),
+    [conflicts, passedCodes],
+  )
+
+  const visibleSummary = useMemo(() => {
+    if (!summary) return null
+    const hidden = conflicts.length - visibleConflicts.length
+    return {
+      ...summary,
+      warning: Math.max(summary.warning - hidden, 0),
+      total: Math.max(summary.total - hidden, 0),
+    }
+  }, [summary, conflicts.length, visibleConflicts.length])
+
   const explainBody = useMemo<PlanIn>(
     () => ({
       program_id: currentId,
@@ -190,12 +221,12 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
 
   const handleFocusCourse = useCallback(
     (courseCode: string) => {
-      const related = conflicts.filter((c) => c.course_codes.includes(courseCode))
+      const related = visibleConflicts.filter((c) => c.course_codes.includes(courseCode))
       setCourseFilter(related.length > 0 ? courseCode : null)
       const first = related[0]
       if (first) setFocus({ term: first.term, courseCodes: [courseCode], nonce: Date.now() })
     },
-    [conflicts],
+    [visibleConflicts],
   )
 
   // 认知入口不依赖培养方案是否加载成功 —— 它是"转专业之前"用的。
@@ -298,8 +329,8 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
           <StatTiles
             totalEarned={credits.total}
             totalMin={program.total_min_credits}
-            errorCount={summary?.error ?? 0}
-            warningCount={summary?.warning ?? 0}
+            errorCount={visibleSummary?.error ?? 0}
+            warningCount={visibleSummary?.warning ?? 0}
             placedCourses={history.current.items.length}
             totalCourses={program.courses.length}
           />
@@ -308,14 +339,16 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
             <div className="panel__head">
               <h2 className="panel__title">四年排课板</h2>
               <span className="muted tiny">
-                拖动课程卡片改学期· 每学期上限 {program.max_credits_per_term} 学分
+                拖动课程卡片改学期 · 每学期上限 {program.max_credits_per_term} 学分
+                {passedCodes.size > 0 && ' · 虚线灰卡 = 成绩单已通过'}
               </span>
             </div>
             <TermBoard
               program={program}
               items={history.current.items}
-              conflicts={conflicts}
+              conflicts={visibleConflicts}
               focusCodes={focusCodes}
+              passedCodes={passedCodes}
               unplaced={unplaced}
               unscheduled={samplePlan?.unscheduled ?? []}
               onMove={handleMove}
@@ -328,7 +361,7 @@ function Workbench({ currentId, programs, majors, onPick, health }: WorkbenchPro
         <aside className="shell__aside">
           <ConflictPanel
             program={program}
-            conflicts={conflicts}
+            conflicts={visibleConflicts}
 
             loading={validation.loading}
             stale={validation.stale}

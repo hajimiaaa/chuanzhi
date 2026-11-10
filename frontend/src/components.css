@@ -2,14 +2,18 @@
 
 /* ---------- 排课板 ---------- */
 
+/* 八学期 2×4：一屏看全四年，不再横向滚动 */
 .board {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(168px, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--gap-sm);
-  overflow-x: auto;
   padding-bottom: 4px;
-  scroll-padding-inline: 8px;
+}
+
+@media (max-width: 1280px) {
+  .board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .lane {
@@ -176,9 +180,12 @@
   grid-area: name;
   font-size: 12px;
   line-height: 1.3;
+  /* 最多两行：长课名（「算法设计与分析」「移动应用开发」）不再被硬切 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .course__credits {
@@ -1398,4 +1405,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 成绩单里已通过的课：仍在培养方案里，但不应被读成"还要再修一遍" */
+.course--passed {
+  opacity: 0.45;
+  border-style: dashed;
 }

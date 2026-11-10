@@ -15,6 +15,8 @@ interface Props {
   conflictCountByCode: Map<string, number>
   worstSeverityByCode: Map<string, string | null>
   focusCodes: Set<string>
+  /** 成绩单里已通过的课号 —— 卡片标灰，避免读成"还要再修一遍" */
+  passedCodes: Set<string>
   /** 拖拽中本泳道的预判结果 —— 只做提示，不影响是否允许落下 */
   preview: Preview | null
   onRemoveCourse: (code: string) => void
@@ -29,6 +31,7 @@ export function TermLane({
   conflictCountByCode,
   worstSeverityByCode,
   focusCodes,
+  passedCodes,
   preview,
   onRemoveCourse,
   onFocusCourse,
@@ -78,6 +81,7 @@ export function TermLane({
             conflictCount={conflictCountByCode.get(course.code) ?? 0}
             worstSeverity={worstSeverityByCode.get(course.code) ?? null}
             isFocus={focusCodes.has(course.code)}
+            passed={passedCodes.has(course.code)}
             onRemove={() => onRemoveCourse(course.code)}
             onFocus={() => onFocusCourse(course.code)}
           />

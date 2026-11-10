@@ -14,6 +14,8 @@ export interface CourseCardBodyProps {
   worstSeverity?: string | null
   isFocus?: boolean
   dragging?: boolean
+  /** 成绩单里已通过 —— 标灰，避免被读成"还要再修一遍" */
+  passed?: boolean
 }
 
 export function CourseCardBody({
@@ -22,6 +24,7 @@ export function CourseCardBody({
   worstSeverity = null,
   isFocus = false,
   dragging = false,
+  passed = false,
 }: CourseCardBodyProps) {
   const stripe = worstSeverity ? SEVERITY_COLOR[worstSeverity] : categoryVar(course.category)
 
@@ -32,6 +35,7 @@ export function CourseCardBody({
         conflictCount > 0 ? 'course--conflict' : '',
         isFocus ? 'course--focus' : '',
         dragging ? 'course--dragging' : '',
+        passed ? 'course--passed' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -79,6 +83,7 @@ export function CourseCard({
   conflictCount = 0,
   worstSeverity = null,
   isFocus = false,
+  passed = false,
   onRemove,
   onFocus,
 }: CourseCardProps) {
@@ -102,7 +107,7 @@ export function CourseCard({
           onRemove()
         }
       }}
-      aria-label={`${course.code} ${course.name}，${formatCredits(course.credits)} 学分，第 ${term} 学期`}
+      aria-label={`${course.code} ${course.name}，${formatCredits(course.credits)} 学分，第 ${term} 学期${passed ? '，成绩单已通过' : ''}`}
     >
       <CourseCardBody
         course={course}
@@ -110,6 +115,7 @@ export function CourseCard({
         worstSeverity={worstSeverity}
         isFocus={isFocus}
         dragging={isDragging}
+        passed={passed}
       />
       <button
         className="course-slot__remove"

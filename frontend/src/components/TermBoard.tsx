@@ -37,6 +37,8 @@ interface Props {
   items: PlanItem[]
   conflicts: Conflict[]
   focusCodes: Set<string>
+  /** 成绩单里已通过的课号 */
+  passedCodes: Set<string>
   /** 尚未排入的课程 —— 与板子共用同一个拖拽上下文，才能从这里拖回学期 */
   unplaced: Course[]
   unscheduled: string[]
@@ -50,6 +52,7 @@ export function TermBoard({
   items,
   conflicts,
   focusCodes,
+  passedCodes,
   unplaced,
   unscheduled,
   onMove,
@@ -154,6 +157,7 @@ export function TermBoard({
             conflictCountByCode={conflictCountByCode}
             worstSeverityByCode={worstSeverityByCode}
             focusCodes={focusCodes}
+            passedCodes={passedCodes}
             preview={previewByTerm.get(term) ?? null}
             onRemoveCourse={onRemove}
             onFocusCourse={onFocusCourse}
