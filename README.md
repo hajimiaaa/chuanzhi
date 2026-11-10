@@ -182,7 +182,7 @@ curl -N -X POST http://127.0.0.1:8000/api/llm/explain/stream \
 │   ├── 备赛手册.md           赛事规则、评分表、关键日期、留痕流程
 │   ├── 开发日志.md           每轮迭代的人工复盘
 │   ├── 技术文档.md           意图控制策略、架构决策、可复现性论证
-│   ├── 技术文档.pdf          提交用 PDF（17 页，由 tools/build_tech_pdf.py 生成）
+│   ├── 技术文档.pdf          提交用 PDF（18 页，由 tools/build_tech_pdf.py 生成）
 │   └── 作品介绍.pdf          提交用 PDF（9 页，含作品图片）
 ├── .env.example
 └── .gitignore
