@@ -44,6 +44,9 @@ SKIP_DIRS = {
 # 精确文件名命中即跳过
 SKIP_FILES = {".env", ".DS_Store", "Thumbs.db"}
 
+# 视频不进作品包：提交的是 B站/抖音公开链接，塞进来只会让 8 MB 的包变成 180 MB
+SKIP_SUFFIXES = {".mp4", ".mov", ".mkv", ".avi", ".flv", ".wmv"}
+
 # 这些文件缺一个，评委就跑不起来
 REQUIRED = (
     "README.md",
@@ -68,6 +71,8 @@ def iter_files(root: Path):
         if path.name in SKIP_FILES:
             continue
         if path.suffix == ".pyc":
+            continue
+        if path.suffix.lower() in SKIP_SUFFIXES:
             continue
         # 桌面截图（表单截图）不是作品材料
         if path.name.startswith("微信图片_"):

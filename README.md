@@ -4,6 +4,8 @@
 
 **参赛作品** — 第九届传智杯 · 全国高校 Vibe Coding 开发挑战赛 · B 组（个人赛）
 
+> 🎬 **演示视频**（5 分 51 秒，含 AI 协同过程复现）：<https://www.bilibili.com/video/BV1dxxk61ET8>
+
 ---
 
 ## 这是什么
